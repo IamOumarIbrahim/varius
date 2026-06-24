@@ -1,4 +1,4 @@
-﻿// src/World/World.cs
+// src/World/World.cs
 using Raylib_cs;
 using System.Numerics;
 using Varius.Core;
@@ -23,6 +23,9 @@ public class GameWorld
 
     // Cloud system
     private readonly List<(float x, float y, float speed, float w, float h)> _clouds = new();
+
+    // Biome ambient particles
+    public BiomeParticleSystem BiomeParticles { get; } = new();
 
     public GameWorld(int width = Constants.WorldWidth, int height = Constants.WorldHeight)
     {
@@ -60,13 +63,7 @@ public class GameWorld
             else
             {
                 if (_rng.NextDouble() < 0.46) Grid[x, y] = Constants.TileAir;
-                else
-                {
-                    double r = _rng.NextDouble();
-                    Grid[x, y] = r < 0.03 ? Constants.TileCoal :
-                                 r < 0.05 ? Constants.TileIron :
-                                 r < 0.06 ? Constants.TileGold : Constants.TileStone;
-                }
+                else Grid[x, y] = BiomeHelper.GetRandomOre(y, _rng);
             }
             if (y == Height - 1) Grid[x, y] = Constants.TileBedrock;
         }
@@ -90,7 +87,7 @@ public class GameWorld
                 if (temp[x, y] != Constants.TileAir && temp[x, y] != Constants.TileCage)
                     Grid[x, y] = solids >= 4 ? temp[x, y] : Constants.TileAir;
                 else
-                    Grid[x, y] = solids >= 5 ? (y > 30 ? Constants.TileStone : Constants.TileDirt) : Constants.TileAir;
+                    Grid[x, y] = solids >= 5 ? BiomeHelper.GetBiomeStone(y) : Constants.TileAir;
             }
             temp = (int[,])Grid.Clone();
         }
@@ -136,7 +133,8 @@ public class GameWorld
     public bool IsSolid(int tx, int ty)
     {
         int t = GetTile(tx, ty);
-        return t != Constants.TileAir && t != Constants.TileCage && t != Constants.TileTorch;
+        return t != Constants.TileAir && t != Constants.TileCage && t != Constants.TileTorch
+               || BiomeHelper.IsBiomeSolid(t);
     }
 
     public List<Rectangle> CheckTileCollision(Rectangle rect)
@@ -156,36 +154,58 @@ public class GameWorld
         return result;
     }
 
-    public void Draw(float camX, float camY, float zoom)
+    public void Draw(float camX, float camY, float zoom, float timeOfDay = 12f)
     {
         int sw = Constants.ScreenWidth;
         int sh = Constants.ScreenHeight;
         int ts = (int)(Constants.TileSize * zoom);
 
+        // Sky Color Lerp
+        Color skyCol = GetSkyColor(timeOfDay);
+
         // Sky
         int skyLimitY = (int)((Constants.SurfaceY + 1) * Constants.TileSize * zoom - camY);
         if (skyLimitY > 0)
         {
-            Raylib.DrawRectangle(0, 0, sw, Math.Min(sh, skyLimitY), new Color(100, 180, 240, 255));
-            // Sun
-            int sunX = (int)(100 * Constants.TileSize * zoom - camX * 0.3f);
-            int sunY = (int)(8 * Constants.TileSize * zoom - camY * 0.3f);
-            int sunR = (int)(36 * zoom);
-            if (sunX > -sunR && sunX < sw + sunR && sunY > -sunR && sunY < sh + sunR)
+            Raylib.DrawRectangle(0, 0, sw, Math.Min(sh, skyLimitY), skyCol);
+            
+            // Sun (drawn during day)
+            if (timeOfDay >= 5.5f && timeOfDay < 18.5f)
             {
-                Raylib.DrawCircle(sunX, sunY, sunR * 1.35f, new Color(255, 255, 210, 80));
-                Raylib.DrawCircle(sunX, sunY, sunR * 1.15f, new Color(255, 245, 180, 120));
-                Raylib.DrawCircle(sunX, sunY, sunR, new Color(255, 220, 60, 255));
-                for (int ang = 0; ang < 360; ang += 40)
+                int sunX = (int)(100 * Constants.TileSize * zoom - camX * 0.3f);
+                int sunY = (int)(8 * Constants.TileSize * zoom - camY * 0.3f);
+                int sunR = (int)(36 * zoom);
+                if (sunX > -sunR && sunX < sw + sunR && sunY > -sunR && sunY < sh + sunR)
                 {
-                    float rad = ang * MathF.PI / 180f;
-                    int x1 = (int)(sunX + MathF.Cos(rad) * sunR * 1.15f);
-                    int y1 = (int)(sunY + MathF.Sin(rad) * sunR * 1.15f);
-                    int x2 = (int)(sunX + MathF.Cos(rad) * sunR * 1.5f);
-                    int y2 = (int)(sunY + MathF.Sin(rad) * sunR * 1.5f);
-                    Raylib.DrawLine(x1, y1, x2, y2, new Color(255, 220, 60, 200));
+                    Raylib.DrawCircle(sunX, sunY, sunR * 1.35f, new Color(255, 255, 210, 80));
+                    Raylib.DrawCircle(sunX, sunY, sunR * 1.15f, new Color(255, 245, 180, 120));
+                    Raylib.DrawCircle(sunX, sunY, sunR, new Color(255, 220, 60, 255));
+                    for (int ang = 0; ang < 360; ang += 40)
+                    {
+                        float rad = ang * MathF.PI / 180f;
+                        int x1 = (int)(sunX + MathF.Cos(rad) * sunR * 1.15f);
+                        int y1 = (int)(sunY + MathF.Sin(rad) * sunR * 1.15f);
+                        int x2 = (int)(sunX + MathF.Cos(rad) * sunR * 1.5f);
+                        int y2 = (int)(sunY + MathF.Sin(rad) * sunR * 1.5f);
+                        Raylib.DrawLine(x1, y1, x2, y2, new Color(255, 220, 60, 200));
+                    }
                 }
             }
+            // Moon (drawn at night/dusk/sunrise transitions)
+            if (timeOfDay >= 18f || timeOfDay < 6f)
+            {
+                int moonX = (int)(80 * Constants.TileSize * zoom - camX * 0.3f);
+                int moonY = (int)(6 * Constants.TileSize * zoom - camY * 0.3f);
+                int moonR = (int)(24 * zoom);
+                if (moonX > -moonR && moonX < sw + moonR && moonY > -moonR && moonY < sh + moonR)
+                {
+                    Raylib.DrawCircle(moonX, moonY, moonR * 1.2f, new Color(220, 230, 255, 60));
+                    Raylib.DrawCircle(moonX, moonY, moonR, new Color(240, 245, 255, 230));
+                    // Crescent shadow effect
+                    Raylib.DrawCircle(moonX + (int)(6 * zoom), moonY - (int)(4 * zoom), moonR - 2, skyCol);
+                }
+            }
+
             // Clouds
             foreach (var (cx, cy, _, cw, ch) in _clouds)
             {
@@ -218,16 +238,26 @@ public class GameWorld
 
             Color baseCol = tile switch
             {
-                Constants.TileDirt     => new Color(110, 72, 42, 255),
-                Constants.TileStone    => new Color(95, 95, 100, 255),
-                Constants.TileIron     => new Color(140, 115, 90, 255),
-                Constants.TileGold     => new Color(200, 175, 55, 255),
-                Constants.TileCoal     => new Color(38, 38, 40, 255),
-                Constants.TileGrass    => new Color(50, 155, 50, 255),
-                Constants.TileBedrock  => new Color(18, 18, 20, 255),
-                Constants.TileCage     => new Color(190, 150, 35, 255),
-                Constants.TileTorch    => new Color(80, 55, 25, 255),
-                _                      => Color.Magenta
+                Constants.TileDirt        => new Color(110, 72, 42, 255),
+                Constants.TileStone       => new Color(95, 95, 100, 255),
+                Constants.TileIron        => new Color(140, 115, 90, 255),
+                Constants.TileGold        => new Color(200, 175, 55, 255),
+                Constants.TileCoal        => new Color(38, 38, 40, 255),
+                Constants.TileGrass       => new Color(50, 155, 50, 255),
+                Constants.TileBedrock     => new Color(18, 18, 20, 255),
+                Constants.TileCage        => new Color(190, 150, 35, 255),
+                Constants.TileTorch       => new Color(80, 55, 25, 255),
+                // Biome tiles
+                Constants.TileIce          => new Color(160, 220, 255, 255),
+                Constants.TileObsidian     => new Color(30, 18, 55, 255),
+                Constants.TileAncientBrick => new Color(120, 95, 70, 255),
+                Constants.TileRuinsRune    => new Color(80, 55, 100, 255),
+                Constants.TileFrostCrystal => new Color(100, 210, 255, 255),
+                Constants.TileEmberStone   => new Color(210, 80, 20, 255),
+                Constants.TileRunicShard   => new Color(160, 80, 240, 255),
+                Constants.TileBossChest    => new Color(200, 170, 30, 255),
+                Constants.TileBossArenaFloor => new Color(85, 65, 90, 255),
+                _                          => Color.Magenta
             };
 
             Raylib.DrawRectangle(dx, dy, ts, ts, baseCol);
@@ -351,31 +381,56 @@ public class GameWorld
 
     public void DrawLighting(float camX, float camY, float zoom,
         float playerWorldX, float playerWorldY,
-        bool waterShieldActive, List<(float x, float y)> spitPositions)
+        bool waterShieldActive, List<(float x, float y)> spitPositions, float timeOfDay = 12f)
     {
         int sw = Constants.ScreenWidth;
         int sh = Constants.ScreenHeight;
         int ts = (int)(Constants.TileSize * zoom);
 
-        // Only apply darkness for cave area
-        int skyLimit = (int)((Constants.SurfaceY + 1) * Constants.TileSize * zoom - camY);
-        if (skyLimit >= sh) return; // fully in sky, no lighting needed
+        // Compute surface ambient light alpha at night
+        float nightAlpha = 0f;
+        if (timeOfDay < 5f)
+        {
+            nightAlpha = (1f - (timeOfDay / 5f)) * 185f;
+        }
+        else if (timeOfDay > 19f)
+        {
+            nightAlpha = ((timeOfDay - 19f) / 5f) * 185f;
+        }
 
-        // Draw black overlay on cave portion
+        // Biome-aware ambient darkness
+        int playerTileY = (int)(playerWorldY / Constants.TileSize);
+        var currentBiome = BiomeHelper.GetBiome(playerTileY);
+        var ambientCol = BiomeHelper.GetAmbientColor(currentBiome);
+        float lightRadius = BiomeHelper.GetLightRadius(currentBiome);
+        int prad = (int)(lightRadius * Constants.TileSize * zoom);
+
+        // Draw surface darkness overlay at night
+        int skyLimit = (int)((Constants.SurfaceY + 1) * Constants.TileSize * zoom - camY);
+        if (skyLimit > 0 && nightAlpha > 0)
+        {
+            Raylib.DrawRectangle(0, 0, sw, Math.Min(sh, skyLimit), new Color(10, 10, 24, (int)nightAlpha));
+        }
+
+        // Draw darkness overlay on cave portion
         int caveTop = Math.Max(0, skyLimit);
-        // Use layered alpha darkness
-        Raylib.DrawRectangle(0, caveTop, sw, sh - caveTop, new Color(0, 0, 8, 210));
+        if (sh > caveTop)
+        {
+            Raylib.DrawRectangle(0, caveTop, sw, sh - caveTop, ambientCol);
+        }
 
         // Player light
         float psx = playerWorldX * zoom - camX;
         float psy = playerWorldY * zoom - camY;
-        int prad = (int)(165 * zoom);
 
-        // Draw decreasing-opacity rings outward from player to simulate a soft light
-        for (int ring = prad; ring > 0; ring -= Math.Max(1, prad / 30))
+        // Player light uses surface settings at night, cave settings otherwise
+        Color activeAmbient = playerTileY < Constants.SurfaceY ? new Color(10, 10, 24, (int)nightAlpha) : ambientCol;
+        int activePrad = playerTileY < Constants.SurfaceY ? (int)(10.5f * Constants.TileSize * zoom) : prad;
+
+        for (int ring = activePrad; ring > 0; ring -= Math.Max(1, activePrad / 30))
         {
-            float alpha = 210f * (1f - (float)ring / prad);
-            Raylib.DrawCircle((int)psx, (int)psy, ring, new Color(0, 0, 8, (int)(210 - alpha)));
+            float alpha = (float)activeAmbient.A * (1f - (float)ring / activePrad);
+            Raylib.DrawCircle((int)psx, (int)psy, ring, new Color(activeAmbient.R, activeAmbient.G, activeAmbient.B, (int)(activeAmbient.A - alpha)));
         }
         // Fully clear center
         Raylib.DrawCircle((int)psx, (int)psy, (int)(40 * zoom), new Color(0, 0, 0, 0));
@@ -410,5 +465,49 @@ public class GameWorld
                 Raylib.DrawCircle((int)psx, (int)psy, ring, new Color(0, 0, 8, (int)(60 - alpha)));
             }
         }
+    }
+
+    private Color GetSkyColor(float time)
+    {
+        if (time < 5f)
+        {
+            float t = time / 5f;
+            return LerpColor(new Color(12, 10, 28, 255), new Color(220, 120, 130, 255), t);
+        }
+        else if (time < 9f)
+        {
+            float t = (time - 5f) / 4f;
+            return LerpColor(new Color(220, 120, 130, 255), new Color(100, 180, 240, 255), t);
+        }
+        else if (time < 17f)
+        {
+            float t = (time - 9f) / 8f;
+            return LerpColor(new Color(100, 180, 240, 255), new Color(100, 180, 240, 255), t);
+        }
+        else if (time < 19.5f)
+        {
+            float t = (time - 17f) / 2.5f;
+            return LerpColor(new Color(100, 180, 240, 255), new Color(240, 100, 50, 255), t);
+        }
+        else if (time < 22f)
+        {
+            float t = (time - 19.5f) / 2.5f;
+            return LerpColor(new Color(240, 100, 50, 255), new Color(12, 10, 28, 255), t);
+        }
+        else
+        {
+            float t = (time - 22f) / 2f;
+            return LerpColor(new Color(12, 10, 28, 255), new Color(12, 10, 28, 255), t);
+        }
+    }
+
+    private Color LerpColor(Color c1, Color c2, float t)
+    {
+        return new Color(
+            (byte)(c1.R + (c2.R - c1.R) * t),
+            (byte)(c1.G + (c2.G - c1.G) * t),
+            (byte)(c1.B + (c2.B - c1.B) * t),
+            (byte)255
+        );
     }
 }

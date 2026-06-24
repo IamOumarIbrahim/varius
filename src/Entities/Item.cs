@@ -1,5 +1,8 @@
 // src/Entities/Item.cs
 using Raylib_cs;
+using System;
+using System.Collections.Generic;
+using Varius.Data;
 
 namespace Varius.Entities;
 
@@ -76,6 +79,57 @@ public class Item
         }
 
         return new Item { Name = name, Slot = slot, Rarity = rarity, Bonuses = bonuses };
+    }
+
+    public static Item GenerateLegendary(int playerLevel)
+    {
+        var item = GenerateRandom(playerLevel);
+        item.Rarity = ItemRarity.Legendary;
+        float mult = 4.2f;
+        
+        var bonuses = new Dictionary<string, float>();
+        switch (item.Slot)
+        {
+            case ItemSlot.Helmet:
+                bonuses["MaxHealth"] = (int)((_rng.Next(16, 25)) * mult);
+                bonuses["Armor"] = (int)(_rng.Next(2, 4) * (mult / 1.5f));
+                break;
+            case ItemSlot.Ring:
+                bonuses["CritRate"] = MathF.Round(_rng.NextSingle() * 0.03f * mult + 0.03f, 3);
+                bonuses["CritDmg"] = MathF.Round(_rng.NextSingle() * 0.07f * mult + 0.10f, 2);
+                break;
+            case ItemSlot.Cape:
+                bonuses["MoveSpeedMult"] = MathF.Round(_rng.NextSingle() * 0.04f * mult + 0.05f, 2);
+                bonuses["MagnetRange"] = MathF.Round(_rng.NextSingle() * 0.7f * mult + 0.8f, 1);
+                break;
+        }
+        item.Bonuses = bonuses;
+        item.Name = "Legendary " + item.Name;
+        return item;
+    }
+
+    public static ItemData ToData(Item item)
+    {
+        return new ItemData
+        {
+            Name = item.Name,
+            Slot = item.Slot.ToString().ToUpper(),
+            Rarity = item.Rarity.ToString().ToUpper(),
+            Bonuses = new Dictionary<string, float>(item.Bonuses)
+        };
+    }
+
+    public static Item FromData(ItemData data)
+    {
+        Enum.TryParse<ItemSlot>(data.Slot, true, out var slot);
+        Enum.TryParse<ItemRarity>(data.Rarity, true, out var rarity);
+        return new Item
+        {
+            Name = data.Name,
+            Slot = slot,
+            Rarity = rarity,
+            Bonuses = new Dictionary<string, float>(data.Bonuses)
+        };
     }
 }
 

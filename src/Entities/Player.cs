@@ -57,8 +57,25 @@ public class Player
     public float CamX { get; set; }
     public float CamY { get; set; }
 
-    // Character-specific timers
-    private float _shockwaveTimer;
+    // Stance Charge Gauge
+    public float StanceCharge { get; set; } = 0f;
+    public bool TriggerStanceBlast { get; set; }
+    public int ReforgeLevel { get; set; } = 0;
+
+    // Character abilities state
+    public bool TriggerShockwave { get; set; }
+    public bool TriggerLightning { get; set; }
+    public bool TriggerFreeze { get; set; }
+    public bool TriggerConcert { get; set; }
+    public bool TriggerWatsonHeal { get; set; }
+    public bool TriggerClone { get; set; }
+    public bool TriggerDiva { get; set; }
+    public bool TriggerDeadEye { get; set; }
+    
+    // Timer trackers
+    private float _abilityTimer1;
+    private float _spiderClingTimer = 5.0f;
+    private int _arianaMode = 0; // 0=Combat, 1=Agile, 2=Magnet
 
     public Player(int characterIndex, float startX, float startY)
     {
@@ -83,14 +100,66 @@ public class Player
         Stats = BaseStats.Clone();
         foreach (var item in Equipped.Values)
             if (item != null) Stats.ApplyItemBonuses(item);
+
+        // Apply Ariana Grande's dynamic stance boosts
+        if (CharDef.Name == "Ariana Grande")
+        {
+            if (_arianaMode == 0) Stats.BaseDmg *= 1.20f;
+            else if (_arianaMode == 1) Stats.MoveSpeedMult *= 1.30f;
+            else if (_arianaMode == 2) Stats.MagnetRange *= 2.0f;
+        }
+
+        // Apply stance-specific multipliers
+        if (Stance == Stance.Wind)
+        {
+            Stats.MoveSpeedMult *= 1.22f;
+        }
+        else if (Stance == Stance.Stone)
+        {
+            Stats.BaseDmg *= 1.15f;
+        }
+        else if (Stance == Stance.Water)
+        {
+            Stats.Armor += 2;
+        }
     }
 
     public Rectangle GetRect() => new(X, Y, W, H);
 
     public void Update(float dt, World.GameWorld world, object? mobManager = null)
     {
-        // Gravity
-        VY += Constants.Gravity * dt;
+        // Gravity (modified for Spider-Man wall crawl)
+        float gravityScalar = 1.0f;
+
+        // Wall check for Spider-Man
+        bool nextToWall = false;
+        if (!OnGround)
+        {
+            var leftRec = new Rectangle(X - 2, Y + 2, 2, H - 4);
+            var rightRec = new Rectangle(X + W, Y + 2, 2, H - 4);
+            if (world.CheckTileCollision(leftRec).Count > 0 && InputManager.Left) nextToWall = true;
+            if (world.CheckTileCollision(rightRec).Count > 0 && InputManager.Right) nextToWall = true;
+        }
+
+        if (CharDef.Name == "Spider-Man" && nextToWall && !OnGround)
+        {
+            if (_spiderClingTimer > 0)
+            {
+                _spiderClingTimer -= dt;
+                gravityScalar = 0f;
+                VY = 20f; // Slide down very slowly
+                if (InputManager.Jump)
+                {
+                    VY = Constants.JumpForce * 0.85f;
+                }
+            }
+        }
+        else if (OnGround)
+        {
+            _spiderClingTimer = 5.0f;
+        }
+
+        VY += Constants.Gravity * gravityScalar * dt;
         if (VY > Constants.MaxFallSpeed) VY = Constants.MaxFallSpeed;
 
         // Posture recovery
@@ -100,21 +169,55 @@ public class Player
         if (FlashTimer > 0) FlashTimer -= dt;
         if (SwingTimer > 0) { SwingTimer -= dt; if (SwingTimer <= 0) IsSwinging = false; }
 
-        // Character passive
+        // Character passives & ability timers
+        _abilityTimer1 += dt;
         switch (CharDef.Name)
         {
             case "Deadpool":
                 Health = (int)MathF.Min(Health + Stats.MaxHealth * 0.03f * dt, Stats.MaxHealth);
                 break;
             case "Wednesday Addams":
-                _shockwaveTimer += dt;
-                if (_shockwaveTimer >= 8f) { _shockwaveTimer = 0; /* shockwave event handled in engine */ }
+                if (_abilityTimer1 >= 8f) { _abilityTimer1 = 0; TriggerShockwave = true; }
+                break;
+            case "Thor":
+                if (_abilityTimer1 >= 20f) { _abilityTimer1 = 0; TriggerLightning = true; }
+                break;
+            case "Ariana Grande":
+                if (_abilityTimer1 >= 12f)
+                {
+                    _abilityTimer1 = 0;
+                    _arianaMode = (_arianaMode + 1) % 3;
+                    RecalculateStats();
+                }
+                break;
+            case "John Watson":
+                if (_abilityTimer1 >= 30f)
+                {
+                    _abilityTimer1 = 0;
+                    Health = (int)MathF.Min(Health + Stats.MaxHealth * 0.20f, Stats.MaxHealth);
+                    TriggerWatsonHeal = true;
+                }
+                break;
+            case "Gojo Satoru":
+                if (_abilityTimer1 >= 25f) { _abilityTimer1 = 0; TriggerFreeze = true; }
+                break;
+            case "Miku Hatsune":
+                if (_abilityTimer1 >= 20f) { _abilityTimer1 = 0; TriggerConcert = true; }
+                break;
+            case "Naruto Uzumaki":
+                if (_abilityTimer1 >= 14f) { _abilityTimer1 = 0; TriggerClone = true; }
+                break;
+            case "Sabrina Carpenter":
+            case "Taylor Swift":
+                if (_abilityTimer1 >= 10f) { _abilityTimer1 = 0; TriggerDiva = true; }
+                break;
+            case "Arthur Morgan":
+                if (_abilityTimer1 >= 8f) { _abilityTimer1 = 0; TriggerDeadEye = true; }
                 break;
         }
 
         // Movement
         float speed = Constants.WalkSpeed * Stats.MoveSpeedMult;
-        if (Stance == Stance.Wind) speed *= 1.22f;
         VX = 0;
         if (InputManager.Left)  { VX = -speed; Direction = -1; }
         if (InputManager.Right) { VX =  speed; Direction =  1; }
@@ -159,7 +262,7 @@ public class Player
         CamY = Math.Clamp(CamY, 0, Math.Max(0, maxCamY));
     }
 
-    public void HandleUseKey(World.GameWorld world, Combat.CombatManager combat)
+    public bool HandleUseKey(World.GameWorld world, Combat.CombatManager combat)
     {
         var (adx, ady) = InputManager.GetActionDirection();
         if (adx == 0 && ady == 0) adx = Direction;
@@ -172,6 +275,7 @@ public class Player
                              (int)((Y + H / 2f) / Constants.TileSize);
 
         string tool = Toolbar[ActiveSlot];
+        bool swung = false;
         switch (tool)
         {
             case "PICKAXE":
@@ -179,12 +283,14 @@ public class Player
                 {
                     IsMining = true; MineTarget = (tx, ty); MineTimer = 0;
                     IsSwinging = true; SwingTimer = 0.22f;
+                    swung = true;
                 }
                 break;
             case "KATANA":
                 if (adx != 0) Direction = adx;
                 IsSwinging = true; SwingTimer = 0.28f;
                 combat.TriggerManualSwing(this);
+                swung = true;
                 break;
             case "BLOCK":
                 var placed = new Rectangle(tx * 16, ty * 16, 16, 16);
@@ -192,6 +298,7 @@ public class Player
                 {
                     world.SetTile(tx, ty, Constants.TileDirt);
                     IsSwinging = true; SwingTimer = 0.15f;
+                    swung = true;
                 }
                 break;
             case "TORCH":
@@ -199,17 +306,21 @@ public class Player
                 {
                     world.SetTile(tx, ty, Constants.TileTorch);
                     IsSwinging = true; SwingTimer = 0.15f;
+                    swung = true;
                 }
                 break;
             case "WATER":
                 Stance = Stance.Water;
                 IsSwinging = true; SwingTimer = 0.15f;
+                swung = true;
                 break;
             case "WIND":
                 Stance = Stance.Wind;
                 IsSwinging = true; SwingTimer = 0.15f;
+                swung = true;
                 break;
         }
+        return swung;
     }
 
     public void HandleUseKeyReleased() { IsMining = false; MineTarget = null; }

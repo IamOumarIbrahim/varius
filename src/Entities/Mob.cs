@@ -23,10 +23,18 @@ public class Mob
     private bool _onGround;
     private float _aiTimer;
     private float _spitTimer;
+    private float _statusSecTimer;
     public const int W = 12;
     public const int H = 12;
     private float _slowTimer;
     private float _danceTimer;
+    public float BurnTimer { get; set; }
+    public float BleedTimer { get; set; }
+    public float FreezeTimer { get; set; }
+
+    public void ApplyBurn(float duration) => BurnTimer = Math.Max(BurnTimer, duration);
+    public void ApplyBleed(float duration) => BleedTimer = Math.Max(BleedTimer, duration);
+    public void ApplyFreeze(float duration) => FreezeTimer = Math.Max(FreezeTimer, duration);
 
     private static readonly Random _rng = new();
 
@@ -69,10 +77,24 @@ public class Mob
         var result = new List<Combat.Projectile>();
         if (Dead) return result;
         if (FlashTimer > 0) FlashTimer -= dt;
-        if (_danceTimer > 0) { _danceTimer -= dt; Health -= (int)(4 * dt); return result; }
+        if (_danceTimer > 0) { _danceTimer -= dt; }
         if (_slowTimer > 0) _slowTimer -= dt;
+        if (BurnTimer > 0) BurnTimer -= dt;
+        if (BleedTimer > 0) BleedTimer -= dt;
+        if (FreezeTimer > 0) FreezeTimer -= dt;
 
-        float speedMult = _slowTimer > 0 ? 0.35f : 1f;
+        _statusSecTimer += dt;
+        if (_statusSecTimer >= 0.25f)
+        {
+            _statusSecTimer -= 0.25f;
+            if (BurnTimer > 0) Health -= 2;
+            if (BleedTimer > 0) Health -= 3;
+            if (_danceTimer > 0) Health -= 1;
+        }
+
+        if (_danceTimer > 0) return result; // Dancing mobs are stunned
+
+        float speedMult = FreezeTimer > 0 ? 0.15f : (_slowTimer > 0 ? 0.35f : 1f);
         float baseSpeed = Type switch { MobType.Bat => 75f, MobType.Bomber => 55f, _ => 65f };
         float spd = baseSpeed * speedMult;
 
@@ -106,18 +128,21 @@ public class Mob
                 if (VX > maxVel) VX = maxVel; if (VX < -maxVel) VX = -maxVel;
                 if (VY > maxVel) VY = maxVel; if (VY < -maxVel) VY = -maxVel;
                 X += VX * dt; Y += VY * dt;
-                _spitTimer += dt;
-                if (_spitTimer >= 3.0f && dist < 180)
+                if (FreezeTimer <= 0)
                 {
-                    _spitTimer = 0;
-                    float spd2 = 120f;
-                    result.Add(new Combat.Projectile
+                    _spitTimer += dt;
+                    if (_spitTimer >= 3.0f && dist < 180)
                     {
-                        X = X + W / 2f, Y = Y + H / 2f,
-                        VX = dist > 0 ? (dx / dist) * spd2 : 0,
-                        VY = dist > 0 ? (dy / dist) * spd2 : 0,
-                        Damage = 8, IsEnemy = true, Col = new Color(140, 60, 220, 255)
-                    });
+                        _spitTimer = 0;
+                        float spd2 = 120f;
+                        result.Add(new Combat.Projectile
+                        {
+                            X = X + W / 2f, Y = Y + H / 2f,
+                            VX = dist > 0 ? (dx / dist) * spd2 : 0,
+                            VY = dist > 0 ? (dy / dist) * spd2 : 0,
+                            Damage = 8, IsEnemy = true, Col = new Color(140, 60, 220, 255)
+                        });
+                    }
                 }
                 return result;
 
@@ -194,6 +219,20 @@ public class Mob
             case MobType.Eyeball:
                 DrawEyeball((int)sx, (int)sy, sw, sh, flash);
                 break;
+        }
+
+        // Status effect overlays
+        if (FreezeTimer > 0)
+        {
+            Raylib.DrawRectangle((int)sx, (int)sy, sw, sh, new Color(80, 160, 255, 120));
+        }
+        else if (BurnTimer > 0)
+        {
+            Raylib.DrawRectangle((int)sx, (int)sy, sw, sh, new Color(255, 120, 30, 100));
+        }
+        else if (BleedTimer > 0)
+        {
+            Raylib.DrawRectangle((int)sx, (int)sy, sw, sh, new Color(200, 20, 20, 100));
         }
 
         // Health bar
@@ -356,14 +395,17 @@ public class MobManager
     private float _difficultyTimer;
     public List<Mob> Mobs => _mobs;
 
-    public void Update(float dt, Player player, World.GameWorld world, Combat.CombatManager combat)
+    public void Update(float dt, Player player, World.GameWorld world, Combat.CombatManager combat, List<ItemDrop> drops, float timeOfDay)
     {
         _spawnTimer += dt;
         _difficultyTimer += dt;
         // Increase difficulty
         if (_difficultyTimer >= 60f) { _difficultyTimer = 0; _spawnInterval = Math.Max(1.2f, _spawnInterval - 0.3f); }
 
-        if (_spawnTimer >= _spawnInterval && _mobs.Count < 40)
+        bool isNight = timeOfDay < 5f || timeOfDay > 19f;
+        float currentInterval = (isNight && player.Y < Constants.BiomeIceStart * Constants.TileSize) ? _spawnInterval * 0.35f : _spawnInterval;
+
+        if (_spawnTimer >= currentInterval && _mobs.Count < 40)
         {
             _spawnTimer = 0;
             SpawnNearPlayer(player, world);
@@ -387,8 +429,21 @@ public class MobManager
             }
         }
 
-        int killed = _mobs.RemoveAll(m => m.Dead);
-        for (int k = 0; k < killed; k++) player.AddXP(20 + _rng.Next(10));
+        // Handle mob deaths and drops
+        for (int i = _mobs.Count - 1; i >= 0; i--)
+        {
+            var mob = _mobs[i];
+            if (mob.Dead)
+            {
+                player.AddXP(20 + _rng.Next(10));
+                if (_rng.NextDouble() < 0.12)
+                {
+                    var item = Item.GenerateRandom(player.Level);
+                    drops.Add(new ItemDrop(mob.X + Mob.W / 2f, mob.Y + Mob.H / 2f, item));
+                }
+                _mobs.RemoveAt(i);
+            }
+        }
     }
 
     private void SpawnNearPlayer(Player player, World.GameWorld world)

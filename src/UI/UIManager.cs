@@ -5,6 +5,7 @@ using Varius.Core;
 using Varius.Entities;
 using Varius.Data;
 using Varius.World;
+using Varius.Audio;
 
 namespace Varius.UI;
 
@@ -279,7 +280,7 @@ public class UIManager
         }
 
         // Version
-        Raylib.DrawText("v beta0.3  |  C# + Raylib", 10, sh - 18, 9, new Color(100, 100, 120, 180));
+        Raylib.DrawText("v1.0 (Release)  |  C# + Raylib", 10, sh - 18, 9, new Color(100, 100, 120, 180));
 
         return clicked;
     }
@@ -560,6 +561,8 @@ public class UIManager
         Raylib.DrawText("INVENTORY", px + 14, py + 12, 18, new Color(255, 215, 60, 255));
         Raylib.DrawText("[ESC/I] Close  |  Click to equip", px + 14, py + panH - 18, 8, new Color(180, 180, 200, 200));
 
+        Item? hoveredItem = null;
+
         // Equipped section
         Raylib.DrawText("Equipped", px + 14, py + 40, 10, new Color(200, 200, 240, 240));
         string[] slotLabels = { "HEAD", "RING", "CAPE" };
@@ -577,6 +580,7 @@ public class UIManager
             {
                 Raylib.DrawRectangle(ex + 4, ey + 16, 8, 8, item.RarityColor);
                 Raylib.DrawText(item.Name.Length > 14 ? item.Name[..14] + ".." : item.Name, ex + 16, ey + 17, 7, item.RarityColor);
+                if (hover) hoveredItem = item;
             }
             else { Raylib.DrawText("(empty)", ex + 8, ey + 17, 7, new Color(100, 100, 115, 200)); }
             if (hover && Raylib.IsMouseButtonPressed(MouseButton.Right))
@@ -601,6 +605,9 @@ public class UIManager
             string shortName = item.Name.Length > 10 ? item.Name[..10] : item.Name;
             Raylib.DrawText(shortName, ix + 4, iy + 25, 7, new Color(220, 220, 255, 240));
             Raylib.DrawText(item.Rarity.ToString(), ix + 4, iy + 35, 6, item.RarityColor);
+            
+            if (hover) hoveredItem = item;
+
             // Bonuses
             int bl = 0;
             foreach (var (key, val) in item.Bonuses)
@@ -610,6 +617,42 @@ public class UIManager
             }
             if (hover && Raylib.IsMouseButtonPressed(MouseButton.Left))
                 player.EquipItem(i);
+        }
+
+        // Draw Tooltip if any item is hovered
+        if (hoveredItem != null)
+        {
+            int tX = (int)mouse.X + 12;
+            int tY = (int)mouse.Y + 12;
+            int tW = 190;
+            int tH = 34 + hoveredItem.Bonuses.Count * 14;
+
+            // Adjust positions to keep inside screen bounds
+            if (tX + tW > sw) tX = (int)mouse.X - tW - 12;
+            if (tY + tH > sh) tY = sh - tH - 12;
+
+            Raylib.DrawRectangle(tX, tY, tW, tH, new Color(8, 8, 14, 250));
+            Raylib.DrawRectangleLines(tX, tY, tW, tH, hoveredItem.RarityColor);
+
+            Raylib.DrawText(hoveredItem.Name, tX + 10, tY + 8, 9, hoveredItem.RarityColor);
+            Raylib.DrawText($"{hoveredItem.Rarity} {hoveredItem.Slot}", tX + 10, tY + 20, 7, new Color(160, 160, 180, 255));
+
+            int line = 0;
+            foreach (var (key, val) in hoveredItem.Bonuses)
+            {
+                string formatted = key switch
+                {
+                    "MaxHealth" => $"+{val} Max HP",
+                    "CritRate" => $"+{val * 100f:0.#}% Crit Rate",
+                    "CritDmg" => $"+{val * 100f:0.#}% Crit Dmg",
+                    "MoveSpeedMult" => $"+{val * 100f:0.#}% Move Speed",
+                    "MagnetRange" => $"+{val:0.#} Magnet Range",
+                    "Armor" => $"+{val} Armor",
+                    _ => $"+{val} {key}"
+                };
+                Raylib.DrawText(formatted, tX + 10, tY + 34 + line * 12, 7, new Color(120, 240, 140, 255));
+                line++;
+            }
         }
     }
 
@@ -715,5 +758,370 @@ public class UIManager
             else { line = testLine; }
         }
         if (line != "") Raylib.DrawText(line, x, ly, fontSize, col);
+    }
+
+    public string? DrawCampBuild(int gold, int iron, CraftingPanel crafting)
+    {
+        int sw = Constants.ScreenWidth;
+        int sh = Constants.ScreenHeight;
+        
+        Raylib.DrawRectangle(0, 0, sw, sh, new Color(0, 0, 0, 160));
+
+        int panW = 520, panH = 380;
+        int px = sw / 2 - panW / 2, py = sh / 2 - panH / 2;
+        Raylib.DrawRectangle(px, py, panW, panH, new Color(14, 14, 22, 245));
+        Raylib.DrawRectangleLines(px, py, panW, panH, new Color(255, 180, 40, 225));
+        
+        Raylib.DrawText("CAMP CONSTRUCTION MODE", px + 16, py + 16, 16, new Color(255, 215, 60, 255));
+        Raylib.DrawText("[ESC / B] Close construction panel", px + 16, py + panH - 22, 8, new Color(180, 180, 200, 200));
+
+        string resText = $"Resources: {gold} Gold | {iron} Iron | {crafting.Resources[Constants.RES_COAL]} Coal | {crafting.Resources[Constants.RES_RUNIC]} Runic Shards";
+        Raylib.DrawText(resText, px + 16, py + 48, 9, new Color(160, 220, 255, 255));
+
+        string[] structures = { "HOUSE", "FORGE", "LIBRARY" };
+        string[] descriptions = 
+        {
+            "Rescued NPCs settle here. Required for colony merchant.",
+            "Enables weapon/armor upgrades. Unlocks Blacksmith NPC.",
+            "Research stat boosts. Unlocks Scholar NPC."
+        };
+        string[] costs =
+        {
+            "Costs: 10 Iron, 20 Gold",
+            "Costs: 15 Iron, 30 Gold, 10 Coal",
+            "Costs: 8 Iron, 50 Gold, 3 Runic Shards"
+        };
+        Color[] colors =
+        {
+            new Color(130, 82, 38, 255),
+            new Color(85, 85, 92, 255),
+            new Color(195, 155, 105, 255)
+        };
+
+        var mouse = Raylib.GetMousePosition();
+        string? selected = null;
+        int btnStartY = py + 74;
+        int btnH = 76;
+        int spacing = 86;
+
+        for (int i = 0; i < 3; i++)
+        {
+            int bx = px + 16;
+            int by = btnStartY + i * spacing;
+            int bw = panW - 32;
+
+            bool hover = mouse.X >= bx && mouse.X < bx + bw && mouse.Y >= by && mouse.Y < by + btnH;
+            var bgCol = hover ? new Color(50, 44, 30, 240) : new Color(22, 22, 28, 230);
+            Raylib.DrawRectangle(bx, by, bw, btnH, bgCol);
+            Raylib.DrawRectangle(bx, by, 6, btnH, colors[i]);
+            Raylib.DrawRectangleLines(bx, by, bw, btnH, hover ? new Color(255, 180, 40, 255) : new Color(60, 60, 80, 200));
+
+            Raylib.DrawText(structures[i], bx + 16, by + 10, 12, Color.White);
+            Raylib.DrawText(descriptions[i], bx + 16, by + 28, 9, new Color(180, 180, 190, 220));
+            Raylib.DrawText(costs[i], bx + 16, by + 46, 8, new Color(255, 200, 80, 200));
+
+            if (hover && Raylib.IsMouseButtonPressed(MouseButton.Left))
+            {
+                selected = structures[i];
+            }
+        }
+        return selected;
+    }
+
+    public void DrawTown(List<NpcData> npcs, ref int gold, ref int iron, Player player, CraftingPanel crafting)
+    {
+        int sw = Constants.ScreenWidth;
+        int sh = Constants.ScreenHeight;
+        
+        Raylib.DrawRectangle(0, 0, sw, sh, new Color(0, 0, 0, 160));
+
+        int panW = 740, panH = 500;
+        int px = sw / 2 - panW / 2, py = sh / 2 - panH / 2;
+        Raylib.DrawRectangle(px, py, panW, panH, new Color(14, 14, 22, 245));
+        Raylib.DrawRectangleLines(px, py, panW, panH, new Color(255, 180, 40, 225));
+        
+        Raylib.DrawText("COLONY MANAGEMENT & TOWN HALL", px + 20, py + 16, 18, new Color(255, 215, 60, 255));
+        Raylib.DrawText("[ESC / T] Close town management", px + 20, py + panH - 22, 8, new Color(180, 180, 200, 200));
+
+        string resText = $"Colony Treasury: {gold} Gold | {iron} Iron | {crafting.Resources[Constants.RES_RUNIC]} Runic Shards";
+        Raylib.DrawText(resText, px + 20, py + 48, 10, new Color(160, 220, 255, 255));
+
+        var mouse = Raylib.GetMousePosition();
+
+        // Left Col - NPC List
+        int col1X = px + 20;
+        int colY = py + 74;
+        int colW = 280;
+        Raylib.DrawText($"Rescued NPCs ({npcs.Count})", col1X, colY, 11, new Color(200, 200, 240, 240));
+
+        int npcListStartY = colY + 18;
+        int cardH = 48;
+        int spacing = 52;
+        for (int i = 0; i < npcs.Count; i++)
+        {
+            int cx = col1X;
+            int cy = npcListStartY + i * spacing;
+            if (cy + cardH > py + panH - 30) break;
+
+            var npc = npcs[i];
+            bool hover = mouse.X >= cx && mouse.X < cx + colW && mouse.Y >= cy && mouse.Y < cy + cardH;
+            
+            Raylib.DrawRectangle(cx, cy, colW, cardH, hover ? new Color(40, 35, 25, 240) : new Color(22, 22, 30, 230));
+            Raylib.DrawRectangleLines(cx, cy, colW, cardH, hover ? new Color(255, 200, 60, 200) : new Color(55, 55, 70, 180));
+
+            Raylib.DrawText(npc.Name, cx + 8, cy + 8, 10, Color.White);
+            Raylib.DrawText($"Job: {npc.Job} (Lv {npc.Level})", cx + 8, cy + 24, 8, new Color(180, 180, 200, 200));
+
+            int jx = cx + colW - 74;
+            int jy = cy + 12;
+            int jw = 66;
+            int jh = 22;
+            bool jHover = mouse.X >= jx && mouse.X < jx + jw && mouse.Y >= jy && mouse.Y < jy + jh;
+            Raylib.DrawRectangle(jx, jy, jw, jh, jHover ? new Color(60, 50, 35, 255) : new Color(30, 30, 38, 255));
+            Raylib.DrawRectangleLines(jx, jy, jw, jh, jHover ? new Color(255, 200, 60, 255) : new Color(80, 80, 90, 200));
+            Raylib.DrawText("Change Job", jx + 6, jy + 6, 7, Color.White);
+
+            if (jHover && Raylib.IsMouseButtonPressed(MouseButton.Left))
+            {
+                npc.Job = npc.Job switch
+                {
+                    "Unassigned" => "Merchant",
+                    "Merchant"   => "Blacksmith",
+                    "Blacksmith" => "Scholar",
+                    "Scholar"    => "Unassigned",
+                    _            => "Unassigned"
+                };
+                SoundManager.Instance.Play("swing");
+            }
+        }
+
+        // Right Col - Facility Actions
+        int col2X = px + colW + 40;
+        int col2W = panW - colW - 60;
+        Raylib.DrawText("Facility Interactions", col2X, colY, 11, new Color(200, 200, 240, 240));
+
+        int facStartY = colY + 18;
+        
+        bool hasMerchant = false;
+        bool hasBlacksmith = false;
+        bool hasScholar = false;
+        foreach (var npc in npcs)
+        {
+            if (npc.Job == "Merchant") hasMerchant = true;
+            if (npc.Job == "Blacksmith") hasBlacksmith = true;
+            if (npc.Job == "Scholar") hasScholar = true;
+        }
+
+        // MERCHANT PANEL
+        int my = facStartY;
+        int mh = 110;
+        Raylib.DrawRectangle(col2X, my, col2W, mh, new Color(20, 20, 28, 220));
+        Raylib.DrawRectangleLines(col2X, my, col2W, mh, new Color(80, 80, 100, 200));
+        Raylib.DrawText("MERCHANT STORE (Requires Merchant NPC)", col2X + 12, my + 10, 9, hasMerchant ? new Color(100, 240, 160, 255) : new Color(180, 80, 80, 255));
+        
+        if (hasMerchant)
+        {
+            string diag = GetNpcDialogue("Merchant", player.CharDef.Name);
+            Raylib.DrawText(diag, col2X + 12, my + 23, 7, new Color(255, 235, 120, 200));
+
+            string[] items = { "Buy Iron (5g)", "Buy Gold (12g)", "Buy Runic (40g)" };
+            int[] costG = { 5, 12, 40 };
+            for (int i = 0; i < 3; i++)
+            {
+                int bx = col2X + 12 + i * 124;
+                int by = my + 38;
+                int bw = 114;
+                int bh = 32;
+                bool bHover = mouse.X >= bx && mouse.X < bx + bw && mouse.Y >= by && mouse.Y < by + bh;
+                Raylib.DrawRectangle(bx, by, bw, bh, bHover ? new Color(50, 45, 30, 255) : new Color(30, 30, 38, 255));
+                Raylib.DrawRectangleLines(bx, by, bw, bh, bHover ? new Color(255, 200, 60, 255) : new Color(70, 70, 80, 200));
+                Raylib.DrawText(items[i], bx + 10, by + 10, 8, Color.White);
+
+                if (bHover && Raylib.IsMouseButtonPressed(MouseButton.Left))
+                {
+                    if (gold >= costG[i])
+                    {
+                        gold -= costG[i];
+                        if (i == 0) { iron++; SoundManager.Instance.Play("mine"); }
+                        else if (i == 1) { crafting.AddResource(Constants.RES_GOLD, 1); SoundManager.Instance.Play("mine"); }
+                        else if (i == 2) { crafting.AddResource(Constants.RES_RUNIC, 1); SoundManager.Instance.Play("level"); }
+                    }
+                    else
+                    {
+                        SoundManager.Instance.Play("damage");
+                    }
+                }
+            }
+        }
+        else
+        {
+            Raylib.DrawText("Assign an NPC to the Merchant job to open this shop.", col2X + 12, my + 44, 8, new Color(150, 150, 160, 180));
+        }
+
+        // BLACKSMITH PANEL
+        int bsy = my + mh + 14;
+        int bsh = 110;
+        Raylib.DrawRectangle(col2X, bsy, col2W, bsh, new Color(20, 20, 28, 220));
+        Raylib.DrawRectangleLines(col2X, bsy, col2W, bsh, new Color(80, 80, 100, 200));
+        Raylib.DrawText("BLACKSMITH FORGE (Requires Blacksmith NPC)", col2X + 12, bsy + 10, 9, hasBlacksmith ? new Color(100, 240, 160, 255) : new Color(180, 80, 80, 255));
+
+        if (hasBlacksmith)
+        {
+            string diag = GetNpcDialogue("Blacksmith", player.CharDef.Name);
+            Raylib.DrawText(diag, col2X + 12, bsy + 22, 7, new Color(255, 235, 120, 200));
+
+            Raylib.DrawText($"KATANA +{player.ReforgeLevel} (DMG: {player.BaseStats.BaseDmg:0.0}) | Armor: {player.BaseStats.Armor}", col2X + 12, bsy + 36, 8, new Color(180, 180, 200, 200));
+            
+            int bx = col2X + 12;
+            int by = bsy + 54;
+            int bw = 170;
+            int bh = 34;
+            bool bHover = mouse.X >= bx && mouse.X < bx + bw && mouse.Y >= by && mouse.Y < by + bh;
+            Raylib.DrawRectangle(bx, by, bw, bh, bHover ? new Color(50, 45, 30, 255) : new Color(30, 30, 38, 255));
+            Raylib.DrawRectangleLines(bx, by, bw, bh, bHover ? new Color(255, 200, 60, 255) : new Color(70, 70, 80, 200));
+            Raylib.DrawText("Upgrade DMG (+15%)\nCosts: 15 Gold, 5 Iron", bx + 10, by + 6, 8, Color.White);
+
+            if (bHover && Raylib.IsMouseButtonPressed(MouseButton.Left))
+            {
+                if (gold >= 15 && iron >= 5)
+                {
+                    gold -= 15;
+                    iron -= 5;
+                    player.ReforgeLevel++;
+                    player.BaseStats.BaseDmg *= 1.15f;
+                    player.RecalculateStats();
+                    SoundManager.Instance.Play("hit");
+                    AddNotification($"Upgrade Success! KATANA +{player.ReforgeLevel}", new Color(50, 255, 120, 255), 0, Constants.ScreenHeight - 96);
+                }
+                else
+                {
+                    SoundManager.Instance.Play("damage");
+                }
+            }
+
+            int bx2 = col2X + 196;
+            bool bHover2 = mouse.X >= bx2 && mouse.X < bx2 + bw && mouse.Y >= by && mouse.Y < by + bh;
+            Raylib.DrawRectangle(bx2, by, bw, bh, bHover2 ? new Color(50, 45, 30, 255) : new Color(30, 30, 38, 255));
+            Raylib.DrawRectangleLines(bx2, by, bw, bh, bHover2 ? new Color(255, 200, 60, 255) : new Color(70, 70, 80, 200));
+            Raylib.DrawText("Upgrade Armor (+1)\nCosts: 20 Gold, 8 Iron", bx2 + 10, by + 6, 8, Color.White);
+
+            if (bHover2 && Raylib.IsMouseButtonPressed(MouseButton.Left))
+            {
+                if (gold >= 20 && iron >= 8)
+                {
+                    gold -= 20;
+                    iron -= 8;
+                    player.BaseStats.Armor += 1;
+                    player.RecalculateStats();
+                    SoundManager.Instance.Play("mine");
+                    AddNotification($"Upgrade Success! Armor: {player.BaseStats.Armor}", new Color(50, 255, 120, 255), 0, Constants.ScreenHeight - 96);
+                }
+                else
+                {
+                    SoundManager.Instance.Play("damage");
+                }
+            }
+        }
+        else
+        {
+            Raylib.DrawText("Assign an NPC to the Blacksmith job to reforge equipment.", col2X + 12, bsy + 44, 8, new Color(150, 150, 160, 180));
+        }
+
+        // SCHOLAR PANEL
+        int scy = bsy + bsh + 14;
+        int sch = 110;
+        Raylib.DrawRectangle(col2X, scy, col2W, sch, new Color(20, 20, 28, 220));
+        Raylib.DrawRectangleLines(col2X, scy, col2W, sch, new Color(80, 80, 100, 200));
+        Raylib.DrawText("SCHOLAR RESEARCH STATION (Requires Scholar NPC)", col2X + 12, scy + 10, 9, hasScholar ? new Color(100, 240, 160, 255) : new Color(180, 80, 80, 255));
+
+        if (hasScholar)
+        {
+            string diag = GetNpcDialogue("Scholar", player.CharDef.Name);
+            Raylib.DrawText(diag, col2X + 12, scy + 22, 7, new Color(255, 235, 120, 200));
+
+            Raylib.DrawText("Spend Runic Shards to research permanent improvements.", col2X + 12, scy + 36, 8, new Color(180, 180, 200, 200));
+            
+            int bx = col2X + 12;
+            int by = scy + 54;
+            int bw = 170;
+            int bh = 34;
+            bool bHover = mouse.X >= bx && mouse.X < bx + bw && mouse.Y >= by && mouse.Y < by + bh;
+            Raylib.DrawRectangle(bx, by, bw, bh, bHover ? new Color(50, 45, 30, 255) : new Color(30, 30, 38, 255));
+            Raylib.DrawRectangleLines(bx, by, bw, bh, bHover ? new Color(255, 200, 60, 255) : new Color(70, 70, 80, 200));
+            Raylib.DrawText("Crit Rate (+5%)\nCosts: 2 Runic Shards", bx + 10, by + 6, 8, Color.White);
+
+            if (bHover && Raylib.IsMouseButtonPressed(MouseButton.Left))
+            {
+                if (crafting.Resources[Constants.RES_RUNIC] >= 2)
+                {
+                    crafting.Resources[Constants.RES_RUNIC] -= 2;
+                    player.BaseStats.CritRate += 0.05f;
+                    player.RecalculateStats();
+                    SoundManager.Instance.Play("level");
+                }
+                else
+                {
+                    SoundManager.Instance.Play("damage");
+                }
+            }
+
+            int bx2 = col2X + 196;
+            bool bHover2 = mouse.X >= bx2 && mouse.X < bx2 + bw && mouse.Y >= by && mouse.Y < by + bh;
+            Raylib.DrawRectangle(bx2, by, bw, bh, bHover2 ? new Color(50, 45, 30, 255) : new Color(30, 30, 38, 255));
+            Raylib.DrawRectangleLines(bx2, by, bw, bh, bHover2 ? new Color(255, 200, 60, 255) : new Color(70, 70, 80, 200));
+            Raylib.DrawText("Magnet Range (+0.8)\nCosts: 1 Runic Shard", bx2 + 10, by + 6, 8, Color.White);
+
+            if (bHover2 && Raylib.IsMouseButtonPressed(MouseButton.Left))
+            {
+                if (crafting.Resources[Constants.RES_RUNIC] >= 1)
+                {
+                    crafting.Resources[Constants.RES_RUNIC] -= 1;
+                    player.BaseStats.MagnetRange += 0.8f;
+                    player.RecalculateStats();
+                    SoundManager.Instance.Play("level");
+                }
+                else
+                {
+                    SoundManager.Instance.Play("damage");
+                }
+            }
+        }
+        else
+        {
+            Raylib.DrawText("Assign an NPC to the Scholar job to research permanent enhancements.", col2X + 12, scy + 44, 8, new Color(150, 150, 160, 180));
+        }
+    }
+
+    private string GetNpcDialogue(string job, string charName)
+    {
+        return job switch
+        {
+            "Merchant" => charName switch
+            {
+                "Walter White" => "\"I have the product you need, Walter. No half measures.\"",
+                "Jesse Pinkman" => "\"Yo! Buy some runic shards, bitch!\"",
+                "Sabrina Carpenter" => "\"That's that me, selling iron!\"",
+                "Taylor Swift" => "\"I knew you were trouble when you walked in... need shards?\"",
+                "Deadpool" => "\"Maximum effort, maximum discounts! (Just kidding, full price).\"",
+                _ => "\"Greeting traveler! Need some supplies for the cave journey?\""
+            },
+            "Blacksmith" => charName switch
+            {
+                "Walter White" => "\"Jesse, we need to forge! Let's cook some upgrades.\"",
+                "Jesse Pinkman" => "\"Yeah, forging! Science, bitch!\"",
+                "Deadpool" => "\"Shhh, my swords are already perfect but let's upgrade anyway.\"",
+                "Arthur Morgan" => "\"Need to clean that revolver, partner? I reforge blades too.\"",
+                _ => "\"Let me hammer out a stronger edge for your weapon.\""
+            },
+            "Scholar" => charName switch
+            {
+                "Walter White" => "\"This research is pure. Ninety-nine point one percent pure.\"",
+                "Sabrina Carpenter" => "\"Please, please, please re-read this research book!\"",
+                "Wednesday Addams" => "\"I research the macabre, not whatever you're looking for.\"",
+                "Gojo Satoru" => "\"Throughout heaven and earth, this library is the honored one.\"",
+                _ => "\"Knowledge yields power. Let us research some stat enhancements.\""
+            },
+            _ => "\"Colony life is peaceful. Thank you for rescuing me!\""
+        };
     }
 }
