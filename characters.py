@@ -191,10 +191,10 @@ CHARACTERS_DB = [
     "stats": { "max_health": 115, "move_speed": 1.25, "armor": 3, "magnet_range": 1.7 },
     "starting_weapon": "Mockingjay Bow",
     "unique_ability": {
-      "name": "Tracker Jacker Swarm",
-      "description": "Critical hits with ranged weapons have a 20% chance to summon a nest of tracker jackers that sting and confuse large hordes."
+      "name": "Tracker Jacker Nest",
+      "description": "Ranged arrow critical strikes have a 20% chance to drop a wasp nest, sending homing tracker jackers to poison surrounding enemy units."
     },
-    "crafting_bonus": "Crafts all bow types and ammunition variations using half the standard wood and stone costs.",
+    "crafting_bonus": "Can craft all bow variants, wood platforms, and basic hunting arrows utilizing half the standard wood material costs.",
     "theme": {
       "hair": (70, 45, 25),       # Dark braid
       "skin": (240, 200, 160),
@@ -940,5 +940,360 @@ CHARACTERS_DB = [
       "pants": (40, 40, 40),
       "eyes": (120, 50, 200)
     }
+  },
+  {
+    "name": "Chappell Roan",
+    "origin": "Pop Culture / Music",
+    "stats": { "max_health": 90, "move_speed": 1.2, "armor": 2, "magnet_range": 3.3 },
+    "starting_weapon": "Pink Pony Club Sparkler",
+    "unique_ability": {
+      "name": "Femininomenon",
+      "description": "Every 15 seconds, triggers a neon dance floor radius that causes all minor enemies to stop moving and dance, taking continuous damage for 4 seconds."
+    },
+    "crafting_bonus": "Crafts glowing vanity items, light sources, and torches without consuming any coal or gel.",
+    "theme": {
+      "hair": (220, 50, 20),      # Curly red
+      "skin": (255, 245, 245),    # Pale white
+      "shirt": (240, 100, 180),   # Glitter pink
+      "pants": (50, 100, 200),    # Denim shorts
+      "eyes": (80, 50, 30),
+      "has_ponytail": True
+    }
+  },
+  {
+    "name": "Olivia Rodrigo",
+    "origin": "Pop Culture / Music",
+    "stats": { "max_health": 95, "move_speed": 1.3, "armor": 2, "magnet_range": 2.8 },
+    "starting_weapon": "Driver's License Impact",
+    "unique_ability": {
+      "name": "Bad Idea Right?",
+      "description": "Dashing forward leaves a trail of spilled automotive oil that trips enemies, slowing them by 50% and making them highly susceptible to fire damage."
+    },
+    "crafting_bonus": "+25% movement speed boost when traveling along custom-built sky rails or minecart tracks.",
+    "theme": {
+      "hair": (45, 30, 20),       # Dark brown long
+      "skin": (245, 205, 165),
+      "shirt": (150, 80, 220),    # Purple crop top
+      "pants": (30, 30, 30),      # Black pants
+      "eyes": (40, 25, 15)
+    }
+  },
+  {
+    "name": "Lorelai Gilmore",
+    "origin": "Gilmore Girls",
+    "stats": { "max_health": 100, "move_speed": 1.4, "armor": 1, "magnet_range": 3.0 },
+    "starting_weapon": "Scalding Coffee Splat",
+    "unique_ability": {
+      "name": "Fast-Talking Filibuster",
+      "description": "Stuns all surrounding enemies with a rapid-fire wall of text dialogue, leaving them completely frozen in place for 3 seconds."
+    },
+    "crafting_bonus": "Consuming caffeine or cooking pot food items gives a 2x longer stat duration buff.",
+    "theme": {
+      "hair": (50, 35, 25),       # Dark brown wavy
+      "skin": (255, 220, 190),
+      "shirt": (40, 100, 200),    # Blue coat
+      "pants": (25, 25, 25),      # Black trousers
+      "eyes": (80, 150, 250)
+    }
+  },
+  {
+    "name": "Steve Harrington",
+    "origin": "Stranger Things",
+    "stats": { "max_health": 130, "move_speed": 1.15, "armor": 5, "magnet_range": 1.8 },
+    "starting_weapon": "Nail-Spiked Bat",
+    "unique_ability": {
+      "name": "Babysitter Protocol",
+      "description": "Grants any active companion units or summoned pets a +30% boost to their maximum health and armor values while nearby."
+    },
+    "crafting_bonus": "Can craft complex wooden barricades and iron trapdoors directly out of the inventory without an anvil.",
+    "theme": {
+      "hair": (100, 65, 35),      # Volume brown coiffure
+      "skin": (255, 220, 190),
+      "shirt": (80, 90, 110),     # Gray member's jacket
+      "pants": (60, 90, 150),     # Blue jeans
+      "eyes": (70, 50, 30)
+    }
+  },
+  {
+    "name": "The Mandalorian",
+    "origin": "Star Wars",
+    "stats": { "max_health": 140, "move_speed": 1.2, "armor": 8, "magnet_range": 1.5 },
+    "starting_weapon": "Whistling Birds Missiles",
+    "unique_ability": {
+      "name": "Beskar Shielding",
+      "description": "Passively blocks a flat 5 damage from every incoming attack. Fully deflects environmental spike trap hits."
+    },
+    "crafting_bonus": "Reduces the amount of raw platinum, titanium, and titanium alloy bars needed to craft high-tier armor sets by 20%.",
+    "theme": {
+      "hair": (50, 50, 50),
+      "skin": (85, 90, 95),       # Helmet silver-gray
+      "shirt": (120, 125, 130),   # Beskar chest
+      "pants": (60, 50, 45),
+      "eyes": (15, 15, 15),       # Dark visor
+      "is_bald": True,
+      "has_cape": True,
+      "cape_color": (70, 70, 70)
+    }
+  },
+  {
+    "name": "Tony Stark",
+    "origin": "Marvel Universe",
+    "stats": { "max_health": 100, "move_speed": 1.25, "armor": 4, "magnet_range": 2.5 },
+    "starting_weapon": "Repulsor Hand Blast",
+    "unique_ability": {
+      "name": "House Party Protocol",
+      "description": "When health drops below 20%, automatically spawns two automated drone turrets that follow the player and laser down hordes for 10 seconds."
+    },
+    "crafting_bonus": "Unlocks a permanent 15% discount on all metal bar costs when building heavy machinery, wiring tech, or automated traps.",
+    "theme": {
+      "hair": (40, 30, 20),       # Dark brown styled hair
+      "skin": (255, 220, 190),
+      "shirt": (180, 30, 40),     # Red armor chest
+      "pants": (180, 30, 40),
+      "eyes": (0, 200, 255),      # Glowing blue repulsor eyes
+      "has_goatee": True
+    }
+  },
+  {
+    "name": "Paul Atreides",
+    "origin": "Dune",
+    "stats": { "max_health": 110, "move_speed": 1.2, "armor": 3, "magnet_range": 2.2 },
+    "starting_weapon": "Crysknife Slash",
+    "unique_ability": {
+      "name": "The Voice",
+      "description": "Commands all onscreen enemies to move backwards away from the player model for 4 seconds, clearing immediate breathing room."
+    },
+    "crafting_bonus": "Gains a massive +40% mining speed efficiency and movement bonus specifically within desert and sand biomes.",
+    "theme": {
+      "hair": (20, 20, 25),       # Black curly hair
+      "skin": (235, 195, 160),    # Desert tan
+      "shirt": (25, 25, 30),      # Black stillsuit
+      "pants": (25, 25, 30),
+      "eyes": (20, 100, 255),     # Blue-in-blue eyes
+      "has_cape": True,
+      "cape_color": (40, 40, 45)
+    }
+  },
+  {
+    "name": "Enid Sinclair",
+    "origin": "Wednesday",
+    "stats": { "max_health": 115, "move_speed": 1.3, "armor": 3, "magnet_range": 2.0 },
+    "starting_weapon": "Rainbow Acrylic Claws",
+    "unique_ability": {
+      "name": "Blood Moon Wolf-Out",
+      "description": "Temporarily mutates into a powerful werewolf for 8 seconds, gaining massive life-steal healing properties on every physical claw strike."
+    },
+    "crafting_bonus": "Can synthesize bright neon cosmetic dyes, colored wool blocks, and decorative tile accents at zero resource cost.",
+    "theme": {
+      "hair": (245, 230, 150),    # Blonde with colorful tips
+      "skin": (255, 225, 210),
+      "shirt": (240, 110, 180),   # Striped pink sweater
+      "pants": (80, 120, 200),
+      "eyes": (80, 160, 240),
+      "has_braids": True
+    }
+  },
+  {
+    "name": "Percy Jackson",
+    "origin": "Percy Jackson & the Olympians",
+    "stats": { "max_health": 120, "move_speed": 1.2, "armor": 4, "magnet_range": 2.0 },
+    "starting_weapon": "Anaklusmos (Riptide Sword)",
+    "unique_ability": {
+      "name": "Hydrokinetic Surge",
+      "description": "Standing inside water pools or honey tiles increases health regeneration by 500% and forms a protective water shield."
+    },
+    "crafting_bonus": "Completely removes the risk of drowning; allows the player to move at full sprinting speeds while completely submerged underwater.",
+    "theme": {
+      "hair": (30, 30, 35),       # Messy black
+      "skin": (245, 210, 175),
+      "shirt": (255, 110, 30),    # Orange camp shirt
+      "pants": (50, 80, 180),
+      "eyes": (40, 180, 150)      # Sea-green eyes
+    }
+  },
+  {
+    "name": "Sailor Moon",
+    "origin": "Sailor Moon",
+    "stats": { "max_health": 90, "move_speed": 1.15, "armor": 2, "magnet_range": 3.5 },
+    "starting_weapon": "Moon Tiara Magic",
+    "unique_ability": {
+      "name": "Cosmic Healing Escalation",
+      "description": "Emits a brilliant silver light across the screen that instantly purifies corrupted, cursed, or toxic debuffs from the player and maps."
+    },
+    "crafting_bonus": "Allows standard fallen stars and mana crystals to drop at a 30% higher frequency during clear night cycles.",
+    "theme": {
+      "hair": (255, 220, 40),     # Bright gold twin tails
+      "skin": (255, 215, 185),
+      "shirt": (245, 245, 250),   # White sailor fuku
+      "pants": (40, 70, 220),     # Blue skirt
+      "eyes": (50, 130, 250),
+      "has_ponytail": True
+    }
+  },
+  {
+    "name": "Goku",
+    "origin": "Dragon Ball",
+    "stats": { "max_health": 150, "move_speed": 1.3, "armor": 4, "magnet_range": 1.7 },
+    "starting_weapon": "Ki Blast Volley",
+    "unique_ability": {
+      "name": "Kamehameha Wave",
+      "description": "Charges up a massive energy beam that completely vaporizes any solid world blocks and enemies in a straight line across the horizon."
+    },
+    "crafting_bonus": "Can smash raw obsidian, hellstone, or hard meteorite nodes using basic iron pickaxes or bare hands.",
+    "theme": {
+      "hair": (20, 20, 20),       # Spiky black hair
+      "skin": (245, 205, 170),
+      "shirt": (255, 100, 0),     # Orange gi
+      "pants": (255, 100, 0),
+      "eyes": (30, 30, 30)
+    }
+  },
+  {
+    "name": "Roronoa Zoro",
+    "origin": "One Piece",
+    "stats": { "max_health": 135, "move_speed": 1.2, "armor": 5, "magnet_range": 1.2 },
+    "starting_weapon": "Three-Sword Style Onogiri",
+    "unique_ability": {
+      "name": "1080 Pound Hoof",
+      "description": "A massive sweeping sword wind slice that instantly chops down all background trees, giant mushrooms, and foliage tiles while killing enemies."
+    },
+    "crafting_bonus": "Wood harvested from trees is automatically doubled in yield per trunk chopped.",
+    "theme": {
+      "hair": (40, 180, 80),      # Green cropped
+      "skin": (235, 190, 150),
+      "shirt": (30, 80, 45),      # Green coat
+      "pants": (20, 20, 20),
+      "eyes": (30, 30, 30),
+      "has_blindfold": True       # Eye scar/closed eye
+    }
+  },
+  {
+    "name": "Weird Barbie",
+    "origin": "Barbie Movie",
+    "stats": { "max_health": 105, "move_speed": 1.1, "armor": 3, "magnet_range": 2.6 },
+    "starting_weapon": "Contortionist Kick",
+    "unique_ability": {
+      "name": "Permanent Splits Dodge",
+      "description": "Possesses a unique erratic hit-box that automatically allows her to slide under flying projectiles and arrow traps without taking damage."
+    },
+    "crafting_bonus": "Can brew completely experimental potions at alchemy labs that combine two random potion effects together into one bottle.",
+    "theme": {
+      "hair": (230, 100, 200),    # Chopped pink
+      "skin": (255, 210, 180),
+      "shirt": (240, 80, 160),    # Wacky pink dress
+      "pants": (150, 220, 50),    # Green/yellow tights
+      "eyes": (80, 120, 220)
+    }
+  },
+  {
+    "name": "Kendrick Lamar",
+    "origin": "Pop Culture / Music",
+    "stats": { "max_health": 110, "move_speed": 1.25, "armor": 3, "magnet_range": 2.4 },
+    "starting_weapon": "Euphoria Diss Track",
+    "unique_ability": {
+      "name": "Not Like Us Booby-Trap",
+      "description": "Stamps a massive soundwave emblem onto the ground tile. When a boss walks over it, it detonates for 500% critical armor-piercing damage."
+    },
+    "crafting_bonus": "Deals an additional flat +20% damage bonus against any elite enemy unit or level mini-boss.",
+    "theme": {
+      "hair": (20, 20, 20),       # Black braids
+      "skin": (110, 80, 55),      # Dark brown
+      "shirt": (120, 120, 130),   # Gray hoodie
+      "pants": (30, 30, 30),
+      "eyes": (30, 25, 20)
+    }
+  },
+  {
+    "name": "Maddy Perez",
+    "origin": "Euphoria",
+    "stats": { "max_health": 95, "move_speed": 1.2, "armor": 3, "magnet_range": 2.9 },
+    "starting_weapon": "Rhinestone Nail Swipe",
+    "unique_ability": {
+      "name": "Pure Intimidation glare",
+      "description": "Looking directly at a horde causes the front row of enemies to cower, reducing their base attack damage properties by 40% for 5 seconds."
+    },
+    "crafting_bonus": "Provides a massive armor buff defense rating to any equipped clothing or vanity items that normally offer 0 armor values.",
+    "theme": {
+      "hair": (25, 20, 20),       # Dark slicked
+      "skin": (230, 185, 145),
+      "shirt": (80, 180, 240),    # Blue rhinestone top
+      "pants": (25, 25, 25),
+      "eyes": (30, 20, 15)
+    }
+  },
+  {
+    "name": "Donkey",
+    "origin": "Shrek",
+    "stats": { "max_health": 125, "move_speed": 1.35, "armor": 3, "magnet_range": 2.2 },
+    "starting_weapon": "Hind-Leg Hoof Kick",
+    "unique_ability": {
+      "name": "Dragon Wife Air-Strike",
+      "description": "Summons a friendly ruby dragon to soar overhead, raining explosive fireballs onto dense clusters of ground enemies for 6 seconds."
+    },
+    "crafting_bonus": "Baking or cooking at campfires always outputs a unique 'Waffle' food item that provides max health regeneration variables.",
+    "theme": {
+      "hair": (100, 100, 100),
+      "skin": (150, 150, 150),    # Gray donkey coat
+      "shirt": (180, 180, 180),
+      "pants": (150, 150, 150),
+      "eyes": (90, 60, 30),
+      "is_bald": True
+    }
+  },
+  {
+    "name": "Gollum",
+    "origin": "Lord of the Rings",
+    "stats": { "max_health": 80, "move_speed": 1.4, "armor": 1, "magnet_range": 4.0 },
+    "starting_weapon": "Raw Fish Chomp",
+    "unique_ability": {
+      "name": "My Precious Stealth",
+      "description": "Crouching down downscales enemy aggro distance to near zero, allowing easy crawling through dangerous high-level dungeon corridors."
+    },
+    "crafting_bonus": "Increases the overall find rate of raw gold ores, platinum nuggets, and rare metal rings inside storage vases by 50%.",
+    "theme": {
+      "hair": (80, 80, 80),       # Thin gray strands
+      "skin": (180, 190, 185),    # Pale gray skin
+      "shirt": (180, 190, 185),
+      "pants": (90, 85, 75),      # Loincloth
+      "eyes": (120, 200, 255),    # Large pale eyes
+      "is_bald": True
+    }
+  },
+  {
+    "name": "Max Mayfield",
+    "origin": "Stranger Things",
+    "stats": { "max_health": 100, "move_speed": 1.5, "armor": 2, "magnet_range": 2.5 },
+    "starting_weapon": "Skateboard Wheel Grind",
+    "unique_ability": {
+      "name": "Running Up That Hill",
+      "description": "Putting on red headphones provides absolute temporary immunity to magical curses, slow traps, or psychic attacks for 10 seconds."
+    },
+    "crafting_bonus": "Can quickly vault over vertical wall block obstacles up to 3 tiles high without needing to slow down or break them.",
+    "theme": {
+      "hair": (220, 90, 30),      # Ginger red
+      "skin": (255, 220, 190),
+      "shirt": (230, 180, 50),    # Yellow jacket
+      "pants": (70, 100, 180),
+      "eyes": (70, 150, 240)
+    }
+  },
+  {
+    "name": "Kim Kardashian",
+    "origin": "Pop Culture",
+    "stats": { "max_health": 100, "move_speed": 1.1, "armor": 4, "magnet_range": 5.0 },
+    "starting_weapon": "Camera Flash Blind",
+    "unique_ability": {
+      "name": "Break the Internet",
+      "description": "Triggers a massive flash-bulb explosion on screen that completely stuns all targets and pulls all dropped items directly into inventory."
+    },
+    "crafting_bonus": "Expands global player inventory storage capacity by an extra 20 full slots via luxury leather backpack mechanics.",
+    "theme": {
+      "hair": (20, 20, 20),       # Long dark hair
+      "skin": (235, 190, 155),    # Tan skin
+      "shirt": (220, 180, 160),   # Nude top
+      "pants": (220, 180, 160),
+      "eyes": (70, 45, 30)
+    }
   }
 ]
+
