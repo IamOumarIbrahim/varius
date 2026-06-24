@@ -1,114 +1,205 @@
-# ⚔️ Varius
+# 🎮 Varius — Cave Survivor
 
-[![Python](https://img.shields.io/badge/Python-3.12+-blue.svg?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
-[![Pygame](https://img.shields.io/badge/Library-Pygame_2.6+-yellow.svg?style=flat-square&logo=python)](https://www.pygame.org/)
-[![Theme](https://img.shields.io/badge/Theme-Catppuccin_Mocha-maroon.svg?style=flat-square)](https://github.com/catppuccin/catppuccin)
-[![License: MIT](https://img.shields.io/badge/License-MIT-lightgrey.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+> A Terraria × Vampire Survivors hybrid RPG — fully rewritten in **C# + Raylib** for native GPU performance.
 
-A pixelated 2D action exploration game combining the swarm mechanics of **Vampire Survivors**, the block-mining world design of **Terraria**, the stance-based combat of **Ghost of Tsushima**, and a roster of 94 pop-culture selectable heroes.
-
----
-
-## 📖 Table of Contents
-- [Key Features](#-key-features)
-- [System Architecture](#-system-architecture)
-- [Quick Setup & Installation](#-quick-setup--installation)
-- [How to Play](#-how-to-play)
-  - [Controls Guide](#controls-guide)
-  - [Combat Stances](#combat-stances)
-- [Save & Load Management](#-save--load-management)
-- [License](#-license)
+![Version](https://img.shields.io/badge/version-beta0.4-orange)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-blue)
+![Language](https://img.shields.io/badge/language-C%23%20.NET%208-purple)
+![Engine](https://img.shields.io/badge/renderer-Raylib--cs%206.1.1-green)
 
 ---
 
-## ✨ Key Features
+## 🚀 What is Varius?
 
-- 👥 **94 Selectable Heroes**: Play as Dua Lipa, Saitama, Charli XCX, Moo Deng, Chappell Roan, Olivia Rodrigo, Steve Harrington, Goku, Zoro, and many more. Each features customized pixel color themes, stats (Max Health, Speed, Armor, Magnet), and custom starting weapons.
-- 🎨 **4x Detailed Sprite Rendering**: Custom procedural rendering of high-fidelity character sprites with smooth shading, dynamic visual stances, and outlines.
-- 🗂️ **Grouped Character Grid**: Select from your survivors in a clean categorized grid layout organized by show and universe origins.
-- 📺 **Minecraft-Style 3D Main Screen**: Start new games, adjust settings, and load save states directly from a dedicated title screen featuring an extruded blocky logo.
-- ⚔️ **Stance Combat System**: Swap between **Stone** (heavy posture break), **Water** (spinning auto-shield blades), and **Wind** (seeking projectile wind slashes) stances.
-- 🛡️ **Parrying & Blocking**: Hold Shift to block damage or tap it at the perfect moment to trigger a **Perfect Parry** counter-attack that sweeps surrounding mobs.
-- ☁️ **Parallax Sky & Caves**: Floating clouds and a glowing sun above-ground, transitioning into dark cave layers generated procedurally.
-- 📦 **Colony Simulator**: Rescue trapped NPC captives inside cages and assign them jobs (Miner, Blacksmith, Scholar) at base camp to passively generate materials.
-- 💾 **3-Slot Save State**: Instantly save or load your progress through the settings menu.
+Varius is a 2D side-scrolling action RPG survival game where you:
+- ⛏️ **Mine** through procedurally generated cave worlds
+- ⚔️ **Fight** increasingly difficult waves of enemies
+- 🏕️ **Build** a colony by rescuing caged NPCs
+- 🎭 **Play as** one of **49 unique characters** from pop culture, anime, TV, and gaming
+- 📈 **Level up** with randomised upgrade choices
 
 ---
 
-## ⚙️ System Architecture
+## ✨ Features (Beta 0.4)
 
-The following block diagram outlines the internal layout and entity interaction pipeline of the game:
+### 🧑‍🎨 49 Selectable Characters (grouped by universe)
+Characters are visually drawn as **detailed pixel-art sprites** rendered procedurally with no image files.
 
-```mermaid
-graph TD
-    Main["main.py (Entrypoint)"] --> Engine["game_engine.py (GameEngine Loop & State Manager)"]
-    Engine --> UI["ui.py (UIManager: Grouped Grid Select Lobby, Main Menu, Settings & Toolbar HUD)"]
-    Engine --> Player["player.py (Player movement, stats & visual appearance)"]
-    Engine --> Mobs["mobs.py (Mob spawning & AI logic)"]
-    Engine --> Combat["combat.py (Parries, sweeps, orbits, project wind slashes)"]
-    Engine --> World["world.py (Noise map generation, sky, floating clouds & sun)"]
-    Engine --> Audio["sounds.py (Silent SoundManager, audio hooks)"]
-    UI --> Char["characters.py (94 Pop-Culture DB characters grouped by universe)"]
+| Group | Characters |
+|---|---|
+| 🎵 Pop Music | Ariana Grande, Sabrina Carpenter, Taylor Swift, Chappell Roan, Olivia Rodrigo, Dua Lipa |
+| 🧛 Vampire Diaries | Damon Salvatore |
+| 📚 Gilmore Girls | Rory Gilmore |
+| 🕸️ Wednesday | Wednesday Addams |
+| 🔬 Breaking Bad | Walter White, Jesse Pinkman |
+| 🍳 The Bear | Carmy Berzatto |
+| 🦸 Marvel | Deadpool, Spider-Man, Thor, Black Widow |
+| 💥 The Boys | Homelander, Billy Butcher |
+| 🏴‍☠️ One Piece | Nami, Zoro |
+| 👊 Jujutsu Kaisen | Gojo Satoru, Nobara Kugisaki, Yuji Itadori |
+| ⚔️ Attack on Titan | Levi, Mikasa, Eren |
+| 🌀 Naruto | Naruto Uzumaki, Sasuke Uchiha |
+| 🎤 Vocaloid | Miku Hatsune |
+| 🌸 Anime | Rem, Zero Two |
+| 🔫 Arcane | Jinx, Vi, Ekko |
+| 🔎 Sherlock | Sherlock Holmes, John Watson |
+| 🗡️ The Witcher | Geralt, Ciri |
+| 🐉 Game of Thrones | Daenerys, Jon Snow |
+| ❄️ Animated | Elsa, Moana |
+| 🤠 Gaming | Arthur Morgan, Joel Miller, Ellie Williams |
+| 👽 Stranger Things | Max Mayfield, Eleven |
+| 🏹 Folklore | Robin Hood, Mulan |
 
-    classDef default fill:#0f172a,stroke:#3b82f6,stroke-width:2px,color:#fff;
-    classDef process fill:#1e1b4b,stroke:#a855f7,stroke-width:2px,color:#fff;
-    class Player,Mobs,Combat,World,UI process;
+Each character has:
+- Unique base stats (HP, speed, armor, magnet range)
+- A signature starting weapon
+- A unique passive/active ability
+- A crafting bonus
+- A distinct pixel-art color theme (skin, hair, shirt, pants, eyes)
+
+### 🌍 World
+- **Procedurally generated** cave worlds (200×100 tiles) with cellular automata cave smoothing
+- Animated sky with a sun, rays, and parallax clouds
+- Tile types: Grass, Dirt, Stone, Iron, Gold, Coal, Bedrock, Torch, Cage
+- Per-tile visual detail: ore veins, crack patterns, animated torch flicker
+- **Fog of War** / cave darkness with a radial player light and torch halos
+
+### 🎮 Controls
+| Key | Action |
+|---|---|
+| `A` / `D` | Move left / right |
+| `Space` | Jump |
+| `F` | Use tool (direction determined by WASD held) |
+| `1–6` | Select toolbar slot |
+| `Scroll` | Cycle toolbar |
+| `Q` / `E` | Cycle stance (Stone → Water → Wind) |
+| `I` | Inventory |
+| `B` | Build camp |
+| `T` | Town panel |
+| `O` | Settings |
+| `ESC` | Pause / back |
+
+### 🛡️ Combat & Stances
+- 3 stances: **Stone** (melee sword), **Water** (spear), **Wind** (whip)
+- Critical hit system with per-character crit rate/damage
+- Projectile-based combat with enemy spit attacks
+- Floating damage numbers (crits in orange, normal in yellow)
+- 6 enemy types: Slime, Crawler, Bomber, Bat, Skeleton, Eyeball
+
+### 🎒 Inventory & Items
+- 3 equipment slots: Helmet, Ring, Cape
+- 4 rarity tiers: Common, Rare, Epic, Legendary (color-coded)
+- Items grant stat bonuses (Max HP, armor, crit rate, crit damage, move speed, magnet range)
+- Click to equip; right-click equipped to unequip
+
+### 📈 Progression
+- XP → Level Up with 3 randomized upgrade choices per level
+- Upgrades: Max HP, damage, speed, mining power, crit, magnet, armor, haste
+
+### 💾 Save System
+- JSON-based save files (`save_slot_0.json`)
+- Load from main menu → Continue option
+
+---
+
+## 🏗️ Architecture (C# Modular)
+
+```
+src/
+├── Core/
+│   ├── Constants.cs      # All game constants
+│   ├── GameEngine.cs     # Main game loop & state machine
+│   ├── GameState.cs      # Game state enum
+│   └── InputManager.cs   # Keyboard/mouse input abstraction
+├── Data/
+│   ├── CharacterData.cs  # All 49 character definitions + groups
+│   └── SaveSystem.cs     # JSON save/load
+├── World/
+│   └── World.cs          # World generation, tiles, lighting, clouds
+├── Entities/
+│   ├── Player.cs         # Player physics, drawing, combat
+│   ├── PlayerStats.cs    # Stats class with item bonus application
+│   ├── Item.cs           # Item generation, drops, physics
+│   └── Mob.cs            # 6 mob types + MobManager
+├── Combat/
+│   └── CombatManager.cs  # Projectiles, damage numbers, hit detection
+├── Audio/
+│   └── SoundManager.cs   # Audio stub (future procedural synthesis)
+└── UI/
+    └── UIManager.cs      # All UI: main menu, character select, HUD, inventory, settings
+Program.cs                # Entry point
 ```
 
 ---
 
-## 🚀 Quick Setup & Installation
+## ⚙️ Requirements & Running
 
-This game requires **Python 3.12+** and **Pygame 2.6+**.
+### Prerequisites
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- GPU with OpenGL 3.3+ support (auto-detected)
+- Windows / Linux / macOS
 
-### 1️⃣ Clone or Download
-Ensure all files are placed in a single directory:
+### Run
 ```bash
-git clone <YOUR_REPO_URL>
-cd <REPO_DIRECTORY>
+# From C:\Dev\Game
+dotnet run
 ```
 
-### 2️⃣ Install Pygame
-Install the required game rendering library:
+### Build Release
 ```bash
-pip install -r requirements.txt
-```
-
-### 3️⃣ Launch the Game
-Run the entry script:
-```bash
-python main.py
+dotnet publish -c Release -r win-x64 --self-contained
 ```
 
 ---
 
-## 🛠️ How to Play
+## 📦 Dependencies
 
-### Controls Guide
-* **Movement**: `A` / `D` (or Left/Right Arrows)
-* **Jump**: **`Space`** (or `W` / Up Arrow)
-* **Block / Parry**: **`Left Shift`** or **`Right Shift`**
-* **Toolbar Select**: Keys `1`–`5`
-* **Use Selected Item / Attack**: **`F` Key**
-  * Target tile is determined by movement keys (`W/A/S/D` or arrows) held at the moment of pressing `F`.
-  * Select Slot 1 (Pickaxe) $\rightarrow$ Hold movement key towards target $\rightarrow$ Press `F` to mine.
-  * Select Slot 2 (Katana/Unique weapon) $\rightarrow$ Press `F` to swing.
-  * Select Slot 3 (Block) $\rightarrow$ Hold movement key towards target $\rightarrow$ Press `F` to build a dirt tile (requires iron).
-  * Slots 4 & 5 (Stance triggers) $\rightarrow$ Press `F` to change combat stances.
-* **Settings Panel**: Press **`O`** to open zoom adjustments and save slots.
-* **Base Camp Management**: Press **`T`** to manage rescued survivors.
-
-### Combat Stances
-1. **Stone Stance** (Slot 2): Heavy physical strikes dealing massive posture damage and knockbacks.
-2. **Water Stance** (Slot 4): Orbital shield blades spin around you, slicing passing monsters.
-3. **Wind Stance** (Slot 5): Shoots wind slash waves targeting the closest enemy unit.
+| Package | Version | Purpose |
+|---|---|---|
+| `Raylib-cs` | 6.1.1 | GPU-accelerated rendering (wraps Raylib C library) |
+| `System.Text.Json` | Built-in | Save file serialization |
 
 ---
 
-## 💾 Save & Load Management
-Open settings with **`O`** and click **SAVE** or **LOAD** on any of the 3 slots. Game progress is serialized to local JSON files (`save_slot_1.json` to `save_slot_3.json`).
+## 🔮 Roadmap
+
+### Beta 0.5 (Planned)
+- [ ] NPC town system (blacksmith, scholar, trader)
+- [ ] Unique character abilities fully implemented
+- [ ] Procedural audio synthesis
+- [ ] Boss enemies
+- [ ] Full base-building mode
+- [ ] Controller support
 
 ---
 
-## 📄 License
-This repository is licensed under the [MIT License](LICENSE).
+## 📜 Changelog
+
+### Beta 0.4 — C# Rewrite
+- **Full codebase translation from Python/Pygame → C# + Raylib**
+- Native GPU rendering (OpenGL via Raylib)
+- Modular architecture with 12 source files across 7 modules
+- 49 characters with procedural pixel-art sprite rendering
+- Detailed world rendering: sky, sun, clouds, ore vein patterns, torch flicker, cave fog of war
+- 6 enemy types with animated pixel-art bodies
+- Full inventory system with equipment slots and item rarity
+- Settings panel with volume, zoom, GPU toggle, fullscreen
+- JSON save/load system
+
+### Beta 0.3
+- Added main menu (Varius 3D pixel logo)
+- Character select screen with group categories and grid layout
+- 4× sprite detail increase
+- F-key uses movement direction for mining/combat
+
+### Beta 0.2
+- Added: Dua Lipa, Carmy Berzatto, and more characters
+- Dynamic cave lighting and torches
+- Stance ultimate system (Q/E keys)
+
+### Beta 0.1
+- Initial release: 50 characters, Terraria-style world, basic combat
+
+---
+
+*Built with ❤️ using C# + [Raylib](https://www.raylib.com/)*

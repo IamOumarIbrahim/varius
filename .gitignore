@@ -1,4 +1,27 @@
+# Varius Game — .gitignore
+
+# Build outputs
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+# Python leftovers (old codebase)
 __pycache__/
+*.py
 *.pyc
+venv/
+*.log
+
+# Save files (user data — don't commit)
 save_slot_*.json
-.git/
+
+# OS
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Editor config
+.vscode/settings.json
+*.swp
