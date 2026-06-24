@@ -159,14 +159,26 @@ class GameEngine:
         elif self.state == "CUSTOMIZER":
             self.ui_manager.draw_customizer(self.screen)
         elif self.state in ["PLAYING", "LEVEL_UP", "SETTINGS", "TOWN"]:
-            # Pass self.zoom to rendering methods
-            self.world.draw(self.screen, self.player.camera_x, self.player.camera_y, self.zoom)
-            self.mob_manager.draw(self.screen, self.player.camera_x, self.player.camera_y, self.zoom)
-            self.combat_manager.draw(self.screen, self.player.camera_x, self.player.camera_y, self.zoom)
-            self.player.draw(self.screen, self.zoom)
-            
-            # Draw HUD
-            self.ui_manager.draw_hud(self.screen)
+            if self.player is not None:
+                # Pass self.zoom to rendering methods
+                self.world.draw(self.screen, self.player.camera_x, self.player.camera_y, self.zoom)
+                self.mob_manager.draw(self.screen, self.player.camera_x, self.player.camera_y, self.zoom)
+                self.combat_manager.draw(self.screen, self.player.camera_x, self.player.camera_y, self.zoom)
+                self.player.draw(self.screen, self.zoom)
+                # Draw HUD
+                self.ui_manager.draw_hud(self.screen)
+            else:
+                # Draw static sky background under the Settings menu when accessed from the main menu
+                self.screen.fill((140, 190, 255))
+                pygame.draw.circle(self.screen, (255, 255, 200), (200, 80), 38)
+                pygame.draw.circle(self.screen, (255, 220, 100), (200, 80), 30)
+                for cloud in self.world.clouds:
+                    cx = int(cloud["x"])
+                    cy = int(cloud["y"])
+                    cw = int(cloud["w"])
+                    ch = int(cloud["h"])
+                    pygame.draw.ellipse(self.screen, (245, 248, 255), (cx, cy, cw, ch))
+                    pygame.draw.ellipse(self.screen, (255, 255, 255), (cx + 5, cy + 4, int(cw * 0.8), int(ch * 0.8)))
             
             # Render overlays on top
             if self.state == "LEVEL_UP":
