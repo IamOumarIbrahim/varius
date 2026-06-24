@@ -52,6 +52,300 @@ class SlashEffect:
         pygame.draw.circle(screen, color, (draw_x, draw_y), int(self.radius * zoom), thickness)
 
 
+class CampBuildPanel:
+    def __init__(self, engine):
+        self.engine = engine
+        self.font_title = pygame.font.SysFont("Courier", 22, bold=True)
+        self.font_main = pygame.font.SysFont("Courier", 14)
+        self.font_header = pygame.font.SysFont("Courier", 14, bold=True)
+        self.buttons = []
+        
+    def handle_event(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_b or event.key == pygame.K_ESCAPE:
+                self.engine.state = "PLAYING"
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            self.handle_click(event.pos)
+            
+    def handle_click(self, pos):
+        for btn in self.buttons:
+            if btn["rect"].collidepoint(pos):
+                self.build_structure(btn["type"])
+                break
+                
+    def build_structure(self, stype):
+        costs = {
+            "HOUSE": (80, 150),  # iron, gold
+            "FORGE": (100, 200),
+            "LIBRARY": (50, 300)
+        }
+        iron_cost, gold_cost = costs[stype]
+        if self.engine.iron >= iron_cost and self.engine.gold >= gold_cost:
+            player = self.engine.player
+            if player.y < 25 * 16:
+                # Check maximum structures space or duplicate
+                # If player already built Forge/Library, prevent duplicate!
+                if stype in ["FORGE", "LIBRARY"]:
+                    for struct in self.engine.world.structures:
+                        if struct["type"] == stype:
+                            return # limit to 1 Forge and 1 Library!
+                            
+                self.engine.iron -= iron_cost
+                self.engine.gold -= gold_cost
+                
+                tx = int(player.x / 16)
+                ty = int((player.y + player.height - 32) / 16)
+                
+                self.engine.world.structures.append({
+                    "tx": tx,
+                    "ty": ty,
+                    "type": stype,
+                    "level": 1
+                })
+                self.engine.sound_manager.play("block")
+                self.engine.state = "PLAYING"
+                
+    def draw(self, screen):
+        overlay = pygame.Surface((1024, 768), pygame.SRCALPHA)
+        overlay.fill((30, 25, 20, 220))
+        screen.blit(overlay, (0, 0))
+        
+        border_rect = pygame.Rect(200, 120, 624, 528)
+        pygame.draw.rect(screen, (38, 30, 25), border_rect, 0, 8)
+        pygame.draw.rect(screen, (150, 110, 80), border_rect, 3, 8)
+        
+        t_surf = self.font_title.render("CAMP BUILD MENU - COLONY STRUCTURES", True, (255, 255, 255))
+        screen.blit(t_surf, (512 - t_surf.get_width()//2, 140))
+        
+        guide = self.font_main.render("Stand above-ground to place structures. Press [B] to Close.", True, (190, 170, 150))
+        screen.blit(guide, (512 - guide.get_width()//2, 175))
+        
+        self.buttons = []
+        structures_info = [
+            ("NPC Cottage", "HOUSE", "Provides +2 maximum colony population capacity.", 80, 150, 220),
+            ("Blacksmith Forge", "FORGE", "Enables Blacksmith job assignments.", 100, 200, 310),
+            ("Scholar Library", "LIBRARY", "Enables Scholar job assignments.", 50, 300, 400)
+        ]
+        
+        for name, stype, desc, iron_c, gold_c, y in structures_info:
+            card_rect = pygame.Rect(230, y, 564, 75)
+            pygame.draw.rect(screen, (25, 20, 15), card_rect, 0, 6)
+            pygame.draw.rect(screen, (80, 60, 50), card_rect, 1, 6)
+            
+            n_surf = self.font_header.render(name, True, (255, 220, 100))
+            screen.blit(n_surf, (245, y + 10))
+            d_surf = self.font_main.render(desc, True, (170, 160, 150))
+            screen.blit(d_surf, (245, y + 30))
+            
+            cost_str = f"Cost: {iron_c} Iron | {gold_c} Gold"
+            c_surf = self.font_main.render(cost_str, True, (130, 220, 130))
+            screen.blit(c_surf, (245, y + 50))
+            
+            # Check duplicate limit
+            is_built = False
+            if stype in ["FORGE", "LIBRARY"]:
+                for struct in self.engine.world.structures:
+                    if struct["type"] == stype:
+                        is_built = True
+                        break
+            
+            btn_rect = pygame.Rect(680, y + 20, 96, 35)
+            can_build = self.engine.iron >= iron_c and self.engine.gold >= gold_c and not is_built
+            
+            bg_col = (45, 80, 50) if can_build else (25, 25, 25)
+            bd_col = (100, 220, 120) if can_build else (60, 60, 60)
+            tx_col = (255, 255, 255) if can_build else (100, 100, 100)
+            
+            pygame.draw.rect(screen, bg_col, btn_rect, 0, 4)
+            pygame.draw.rect(screen, bd_col, btn_rect, 2, 4)
+            
+            lbl_text = "BUILT" if is_built else "BUILD"
+            btn_text = self.font_header.render(lbl_text, True, tx_col)
+            screen.blit(btn_text, (btn_rect.centerx - btn_text.get_width()//2, btn_rect.centery - btn_text.get_height()//2))
+            
+            if not is_built:
+                self.buttons.append({"rect": btn_rect, "type": stype})
+
+
+class InventoryPanel:
+    def __init__(self, engine):
+        self.engine = engine
+        self.font_title = pygame.font.SysFont("Courier", 22, bold=True)
+        self.font_main = pygame.font.SysFont("Courier", 14)
+        self.font_header = pygame.font.SysFont("Courier", 14, bold=True)
+        self.buttons = []
+        self.tooltip_item = None
+        
+    def handle_event(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_i or event.key == pygame.K_ESCAPE:
+                self.engine.state = "PLAYING"
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            self.handle_click(event.pos)
+            
+    def handle_click(self, pos):
+        player = self.engine.player
+        for btn in self.buttons:
+            if btn["rect"].collidepoint(pos):
+                action = btn["action"]
+                if action == "EQUIP":
+                    player.equip_item(btn["index"])
+                elif action == "UNEQUIP":
+                    player.unequip_item(btn["slot"])
+                break
+                
+    def draw(self, screen):
+        player = self.engine.player
+        
+        overlay = pygame.Surface((1024, 768), pygame.SRCALPHA)
+        overlay.fill((20, 20, 30, 230))
+        screen.blit(overlay, (0, 0))
+        
+        border_rect = pygame.Rect(120, 80, 784, 608)
+        pygame.draw.rect(screen, (24, 24, 35), border_rect, 0, 8)
+        pygame.draw.rect(screen, (80, 90, 120), border_rect, 3, 8)
+        
+        t_surf = self.font_title.render("HERO GEAR & INVENTORY EQUIPMENT", True, (255, 255, 255))
+        screen.blit(t_surf, (512 - t_surf.get_width()//2, 100))
+        
+        guide = self.font_main.render("Equip gear to increase stats. Press [I] to Close.", True, (150, 170, 200))
+        screen.blit(guide, (512 - guide.get_width()//2, 134))
+        
+        self.buttons = []
+        self.tooltip_item = None
+        mx, my = pygame.mouse.get_pos()
+        
+        slots_info = [("HELMET", 180), ("RING", 260), ("CAPE", 340)]
+        for slot_type, y in slots_info:
+            pygame.draw.rect(screen, (15, 15, 22), (160, y, 68, 68), 0, 6)
+            pygame.draw.rect(screen, (55, 65, 80), (160, y, 68, 68), 1, 6)
+            
+            lbl_type = self.font_header.render(slot_type[:3], True, (100, 120, 140))
+            screen.blit(lbl_type, (160 + 34 - lbl_type.get_width()//2, y + 26))
+            
+            item = player.equipped[slot_type]
+            if item is not None:
+                pygame.draw.rect(screen, item["color"], (160, y, 68, 68), 0, 6)
+                pygame.draw.rect(screen, (255, 215, 0), (160, y, 68, 68), 2, 6)
+                
+                title_sh = item["name"][:3].upper()
+                t_sh_surf = self.font_header.render(title_sh, True, (255, 255, 255))
+                screen.blit(t_sh_surf, (194 - t_sh_surf.get_width()//2, y + 24))
+                
+                item_rect = pygame.Rect(160, y, 68, 68)
+                if item_rect.collidepoint((mx, my)):
+                    self.tooltip_item = item
+                
+                self.buttons.append({"rect": item_rect, "action": "UNEQUIP", "slot": slot_type})
+                
+        stats_labels = [
+            ("Max HP", player.stats["max_health"]),
+            ("Armor", player.stats.get("armor", 0)),
+            ("Damage", player.stats["base_dmg"]),
+            ("Crit Rate", f"{int(player.stats['crit_rate']*100)}%"),
+            ("Crit Dmg", f"{int(player.stats['crit_dmg']*100)}%"),
+            ("Speed", f"{int(player.stats.get('move_speed_mult', 1.0)*100)}%"),
+            ("Magnet", f"{player.stats.get('magnet_range', 3.0):.1f}")
+        ]
+        
+        sy = 430
+        for name, val in stats_labels:
+            n_surf = self.font_header.render(f"{name}:", True, (180, 200, 220))
+            v_surf = self.font_header.render(str(val), True, (255, 215, 0))
+            screen.blit(n_surf, (160, sy))
+            screen.blit(v_surf, (270, sy))
+            sy += 25
+            
+        pygame.draw.line(screen, (60, 75, 100), (350, 170), (350, 640), 2)
+        
+        grid_start_x = 390
+        grid_start_y = 180
+        cell_size = 72
+        
+        for idx in range(16):
+            col = idx % 4
+            row = idx // 4
+            cell_x = grid_start_x + col * (cell_size + 16)
+            cell_y = grid_start_y + row * (cell_size + 16)
+            
+            cell_rect = pygame.Rect(cell_x, cell_y, cell_size, cell_size)
+            pygame.draw.rect(screen, (15, 15, 22), cell_rect, 0, 8)
+            pygame.draw.rect(screen, (40, 50, 70), cell_rect, 1, 8)
+            
+            if idx < len(player.inventory):
+                item = player.inventory[idx]
+                pygame.draw.rect(screen, item["color"], cell_rect, 0, 8)
+                pygame.draw.rect(screen, (220, 220, 220), cell_rect, 2, 8)
+                
+                sh_title = item["name"][:3].upper()
+                sh_surf = self.font_header.render(sh_title, True, (255, 255, 255))
+                screen.blit(sh_surf, (cell_rect.centerx - sh_surf.get_width()//2, cell_rect.centery - sh_surf.get_height()//2 - 6))
+                
+                type_surf = self.font_main.render(item["slot"][:3], True, (230, 230, 250))
+                screen.blit(type_surf, (cell_rect.centerx - type_surf.get_width()//2, cell_rect.centery + 12))
+                
+                if cell_rect.collidepoint((mx, my)):
+                    self.tooltip_item = item
+                    
+                self.buttons.append({"rect": cell_rect, "action": "EQUIP", "index": idx})
+                
+        if self.tooltip_item is not None:
+            card_x = mx + 20 if mx < 700 else mx - 260
+            card_y = my + 20 if my < 500 else my - 160
+            
+            card_rect = pygame.Rect(card_x, card_y, 240, 140)
+            pygame.draw.rect(screen, (25, 25, 38), card_rect, 0, 8)
+            pygame.draw.rect(screen, self.tooltip_item["color"], card_rect, 2, 8)
+            
+            name_lines = self.wrap_text(self.tooltip_item["name"], 210)
+            cy = card_y + 10
+            for l in name_lines:
+                n_surf = self.font_header.render(l, True, (255, 255, 255))
+                screen.blit(n_surf, (card_x + 12, cy))
+                cy += 18
+                
+            r_str = f"{self.tooltip_item['rarity']} {self.tooltip_item['slot']}"
+            r_surf = self.font_main.render(r_str, True, self.tooltip_item["color"])
+            screen.blit(r_surf, (card_x + 12, cy))
+            cy += 20
+            
+            for stat_name, stat_val in self.tooltip_item["bonuses"].items():
+                disp_name = {
+                    "max_health": "+Max Health",
+                    "armor": "+Armor",
+                    "base_dmg": "+Base Damage",
+                    "crit_rate": "+Crit Rate",
+                    "crit_dmg": "+Crit Damage",
+                    "move_speed_mult": "+Move Speed",
+                    "magnet_range": "+Magnet Range"
+                }.get(stat_name, stat_name)
+                
+                if stat_name in ["crit_rate", "move_speed_mult", "crit_dmg"]:
+                    val_str = f"+{int(stat_val * 100)}%"
+                else:
+                    val_str = f"+{stat_val}"
+                    
+                s_line = f"{disp_name}: {val_str}"
+                s_surf = self.font_main.render(s_line, True, (130, 220, 130))
+                screen.blit(s_surf, (card_x + 12, cy))
+                cy += 18
+
+    def wrap_text(self, text, max_w):
+        words = text.split(' ')
+        lines = []
+        curr = ""
+        for w in words:
+            test = curr + " " + w if curr else w
+            if self.font_header.size(test)[0] <= max_w:
+                curr = test
+            else:
+                lines.append(curr)
+                curr = w
+        if curr:
+            lines.append(curr)
+        return lines
+
+
 class SettingsPanel:
     def __init__(self, engine):
         self.engine = engine
@@ -210,6 +504,9 @@ class TownPanel:
             self.handle_click(mouse_pos)
 
     def handle_click(self, mouse_pos):
+        forge_built = any(s["type"] == "FORGE" for s in self.engine.world.structures)
+        library_built = any(s["type"] == "LIBRARY" for s in self.engine.world.structures)
+
         for btn in self.buttons:
             if btn["rect"].collidepoint(mouse_pos):
                 action = btn["action"]
@@ -217,9 +514,9 @@ class TownPanel:
                 
                 if action == "ASSIGN_MINER":
                     npc["job"] = "Miner"
-                elif action == "ASSIGN_BLACKSMITH":
+                elif action == "ASSIGN_BLACKSMITH" and forge_built:
                     npc["job"] = "Blacksmith"
-                elif action == "ASSIGN_SCHOLAR":
+                elif action == "ASSIGN_SCHOLAR" and library_built:
                     npc["job"] = "Scholar"
                 elif action == "LEVEL_UP":
                     cost = npc["level"] * 50
@@ -242,8 +539,15 @@ class TownPanel:
         title_surf = self.font_title.render("TOWN HALL - BASE CAMP COLONY SIMULATOR", True, (255, 255, 255))
         screen.blit(title_surf, (80, 64))
         
-        info_surf = self.font_main.render("Rescue caged captives from caves to expand your colony population. Press [T] to Close.", True, (150, 200, 170))
-        screen.blit(info_surf, (80, 94))
+        # Cottage count capacity details
+        cottages_count = sum(1 for s in self.engine.world.structures if s["type"] == "HOUSE")
+        max_pop = 2 + 2 * cottages_count
+        pop_str = f"Colony Population: {len(self.engine.rescued_npcs)}/{max_pop} (Houses: {cottages_count})"
+        pop_surf = self.font_header.render(pop_str, True, (150, 220, 180))
+        screen.blit(pop_surf, (80, 94))
+        
+        info_surf = self.font_main.render("Rescue caged captives from caves. Build Houses above-ground to increase capacity [T] to Close.", True, (130, 170, 150))
+        screen.blit(info_surf, (80, 114))
 
         gold_text = f"Gold: {self.engine.gold} (+{self.engine.gold_per_sec}/s)"
         iron_text = f"Iron: {self.engine.iron} (+{self.engine.iron_per_sec}/s)"
@@ -253,9 +557,9 @@ class TownPanel:
         i_surf = self.font_header.render(iron_text, True, (200, 200, 220))
         s_surf = self.font_header.render(schol_text, True, (100, 220, 255))
         
-        screen.blit(g_surf, (80, 130))
-        screen.blit(i_surf, (340, 130))
-        screen.blit(s_surf, (600, 130))
+        screen.blit(g_surf, (80, 140))
+        screen.blit(i_surf, (340, 140))
+        screen.blit(s_surf, (600, 140))
 
         npc_box_rect = pygame.Rect(80, 170, 864, 510)
         pygame.draw.rect(screen, (15, 25, 20), npc_box_rect)
@@ -274,6 +578,9 @@ class TownPanel:
         start_y = 220
         row_h = 55
         
+        forge_built = any(s["type"] == "FORGE" for s in self.engine.world.structures)
+        library_built = any(s["type"] == "LIBRARY" for s in self.engine.world.structures)
+
         for idx, npc in enumerate(self.engine.rescued_npcs):
             curr_y = start_y + idx * row_h
             if curr_y + row_h > 660:
@@ -293,15 +600,25 @@ class TownPanel:
             
             btn_x = 550
             for j_title, j_act, j_col in jobs:
+                is_locked = (j_title == "Smith" and not forge_built) or (j_title == "Scholar" and not library_built)
                 btn_rect = pygame.Rect(btn_x, curr_y + 10, 75, 28)
-                pygame.draw.rect(screen, (30, 50, 40), btn_rect, 0, 4)
-                pygame.draw.rect(screen, j_col, btn_rect, 1, 4)
-                if npc["job"] == j_title or (j_title == "Smith" and npc["job"] == "Blacksmith"):
+                
+                bg_col = (20, 20, 20) if is_locked else (30, 50, 40)
+                bd_col = (50, 50, 50) if is_locked else j_col
+                tx_col = (100, 100, 100) if is_locked else (255, 255, 255)
+                
+                pygame.draw.rect(screen, bg_col, btn_rect, 0, 4)
+                pygame.draw.rect(screen, bd_col, btn_rect, 1, 4)
+                
+                if not is_locked and (npc["job"] == j_title or (j_title == "Smith" and npc["job"] == "Blacksmith")):
                     pygame.draw.rect(screen, (j_col[0]//2, j_col[1]//2, j_col[2]//2), btn_rect, 0, 4)
                 
-                j_surf = pygame.font.SysFont("Courier", 11, bold=True).render(j_title, True, (255, 255, 255))
-                screen.blit(j_surf, (btn_x + 8, curr_y + 18))
-                self.buttons.append({"rect": btn_rect, "action": j_act, "npc": npc})
+                lbl_title = "LOCKED" if is_locked else j_title
+                j_surf = pygame.font.SysFont("Courier", 11, bold=True).render(lbl_title, True, tx_col)
+                screen.blit(j_surf, (btn_x + 37 - j_surf.get_width()//2, curr_y + 18))
+                
+                if not is_locked:
+                    self.buttons.append({"rect": btn_rect, "action": j_act, "npc": npc})
                 btn_x += 85
 
             upg_cost = npc["level"] * 50
@@ -323,6 +640,9 @@ class UIManager:
         self.engine = engine
         self.settings_panel = SettingsPanel(engine)
         self.town_panel = TownPanel(engine)
+        self.camp_build_panel = CampBuildPanel(engine)
+        self.inventory_panel = InventoryPanel(engine)
+        self.loot_notifications = []
         
         self.font_hud = pygame.font.SysFont("Courier", 14, bold=True)
         self.font_large = pygame.font.SysFont("Courier", 32, bold=True)
@@ -348,6 +668,15 @@ class UIManager:
 
     def add_slash_effect(self, x, y, max_radius):
         self.slashes.append(SlashEffect(x, y, max_radius))
+
+    def add_loot_notification(self, item):
+        self.loot_notifications.append({"item": item, "timer": 2.5})
+        
+    def draw_inventory(self, screen):
+        self.inventory_panel.draw(screen)
+        
+    def draw_camp_build(self, screen):
+        self.camp_build_panel.draw(screen)
 
     def wrap_text(self, text, max_width):
         words = text.split(' ')
@@ -968,16 +1297,37 @@ class UIManager:
         elif p.stance == "WIND":
             s_col = (100, 220, 150)
         st_surf = self.font_large.render(s_title, True, s_col)
-        screen.blit(st_surf, (1004 - st_surf.get_width(), 710))
+        screen.blit(st_surf, (1004 - st_surf.get_width(), 702))
+
+        # Ultimate cooldown indicator
+        ult_timer = self.engine.combat_manager.ultimate_timer
+        if ult_timer > 0:
+            ult_pct = ult_timer / self.engine.combat_manager.ultimate_cooldown
+            # Draw a nice small cooldown bar below the stance name
+            bar_w = 150
+            bar_h = 6
+            bx = 1004 - bar_w
+            by = 746
+            pygame.draw.rect(screen, (40, 20, 20), (bx, by, bar_w, bar_h))
+            pygame.draw.rect(screen, (255, 140, 0), (bx, by, int(bar_w * (1 - ult_pct)), bar_h))
+            
+            # Cooldown text
+            cd_txt = self.font_hud.render(f"ULT CD: {ult_timer:.1f}s", True, (255, 140, 0))
+            screen.blit(cd_txt, (1004 - cd_txt.get_width(), 727))
+        else:
+            # Ready indicator!
+            rdy_txt = self.font_hud.render("ULT READY [Q/E]", True, (50, 255, 100))
+            screen.blit(rdy_txt, (1004 - rdy_txt.get_width(), 727))
 
         # Bottom center toolbar
-        toolbar_start_x = 512 - 117
+        toolbar_start_x = 512 - 144
         toolbar_y = 705
         
-        pygame.draw.rect(screen, (15, 15, 20), (toolbar_start_x - 6, toolbar_y - 6, 246, 54), 0, 6)
-        pygame.draw.rect(screen, (50, 60, 75), (toolbar_start_x - 6, toolbar_y - 6, 246, 54), 2, 6)
+        # 6 slots * 48px = 288px. plus padding = 294px
+        pygame.draw.rect(screen, (15, 15, 20), (toolbar_start_x - 6, toolbar_y - 6, 294, 54), 0, 6)
+        pygame.draw.rect(screen, (50, 60, 75), (toolbar_start_x - 6, toolbar_y - 6, 294, 54), 2, 6)
 
-        slot_names = ["Pick", "Katana", "Block", "Water", "Wind"]
+        slot_names = ["Pick", "Katana", "Block", "Torch", "Water", "Wind"]
         
         # Check if custom starting weapon name exists
         custom_weapon_name = getattr(p, "starting_weapon", "Katana")
@@ -986,7 +1336,7 @@ class UIManager:
             custom_weapon_name = custom_weapon_name[:6] + ".."
         slot_names[1] = custom_weapon_name
 
-        for i in range(5):
+        for i in range(6):
             slot_x = toolbar_start_x + i * 48
             slot_rect = pygame.Rect(slot_x, toolbar_y, 42, 42)
             
@@ -1008,6 +1358,40 @@ class UIManager:
             if i == 2: # Block stack display
                 stk_surf = pygame.font.SysFont("Courier", 8, bold=True).render(f"x{self.engine.iron//2}", True, (200, 200, 200))
                 screen.blit(stk_surf, (slot_x + 38 - stk_surf.get_width(), toolbar_y + 30))
+
+        # Floating loot notifications
+        dt = self.engine.clock.get_time() / 1000.0
+        curr_notif_y = 645
+        for notif in self.loot_notifications[:]:
+            notif["timer"] -= dt
+            if notif["timer"] <= 0:
+                self.loot_notifications.remove(notif)
+                continue
+            
+            # Fade out alpha
+            alpha = int(min(1.0, notif["timer"] / 0.5) * 255)
+            item = notif["item"]
+            rarity_colors = {
+                "COMMON": (230, 230, 230),
+                "RARE": (50, 150, 255),
+                "EPIC": (160, 50, 240),
+                "LEGENDARY": (255, 140, 0)
+            }
+            color = rarity_colors.get(item["rarity"], (255, 255, 255))
+            
+            notif_txt = f"+ {item['rarity']} {item['name']}"
+            notif_surf = self.font_hud.render(notif_txt, True, color)
+            
+            # Surface with alpha
+            alpha_surf = pygame.Surface(notif_surf.get_size(), pygame.SRCALPHA)
+            alpha_surf.fill((255, 255, 255, alpha))
+            alpha_surf.blit(notif_surf, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+            
+            float_offset = int((2.5 - notif["timer"]) * 14)
+            nx = 512 - alpha_surf.get_width() // 2
+            ny = curr_notif_y - float_offset
+            screen.blit(alpha_surf, (nx, ny))
+            curr_notif_y -= 18
 
     # --- LEVEL UP OVERLAY ---
     def draw_levelup(self, screen):

@@ -128,6 +128,10 @@ class GameEngine:
                 self.ui_manager.settings_panel.handle_event(event)
             elif self.state == "TOWN":
                 self.ui_manager.town_panel.handle_event(event)
+            elif self.state == "INVENTORY":
+                self.ui_manager.inventory_panel.handle_event(event)
+            elif self.state == "CAMP_BUILD":
+                self.ui_manager.camp_build_panel.handle_event(event)
             elif self.state == "GAME_OVER":
                 self.handle_gameover_event(event)
 
@@ -158,7 +162,7 @@ class GameEngine:
             self.ui_manager.draw_main_menu(self.screen)
         elif self.state == "CUSTOMIZER":
             self.ui_manager.draw_customizer(self.screen)
-        elif self.state in ["PLAYING", "LEVEL_UP", "SETTINGS", "TOWN"]:
+        elif self.state in ["PLAYING", "LEVEL_UP", "SETTINGS", "TOWN", "INVENTORY", "CAMP_BUILD"]:
             if self.player is not None:
                 # Pass self.zoom to rendering methods
                 self.world.draw(self.screen, self.player.camera_x, self.player.camera_y, self.zoom)
@@ -187,6 +191,10 @@ class GameEngine:
                 self.ui_manager.draw_settings(self.screen)
             elif self.state == "TOWN":
                 self.ui_manager.draw_town(self.screen)
+            elif self.state == "INVENTORY":
+                self.ui_manager.draw_inventory(self.screen)
+            elif self.state == "CAMP_BUILD":
+                self.ui_manager.draw_camp_build(self.screen)
                 
         elif self.state == "GAME_OVER":
             self.ui_manager.draw_gameover(self.screen)
@@ -222,7 +230,16 @@ class GameEngine:
             elif event.key == pygame.K_t:
                 self.sound_manager.play("click")
                 self.state = "TOWN"
-            # Toolbar Slots Selection 1-5
+            elif event.key == pygame.K_i:
+                self.sound_manager.play("click")
+                self.state = "INVENTORY"
+            elif event.key == pygame.K_b:
+                if self.player.y < 25 * 16:
+                    self.sound_manager.play("click")
+                    self.state = "CAMP_BUILD"
+            elif event.key == pygame.K_q or event.key == pygame.K_e:
+                self.combat_manager.trigger_ultimate()
+            # Toolbar Slots Selection 1-6
             elif event.key == pygame.K_1:
                 self.player.active_slot = 0
             elif event.key == pygame.K_2:
@@ -232,9 +249,11 @@ class GameEngine:
                 self.player.active_slot = 2
             elif event.key == pygame.K_4:
                 self.player.active_slot = 3
-                self.player.change_stance("WATER")
             elif event.key == pygame.K_5:
                 self.player.active_slot = 4
+                self.player.change_stance("WATER")
+            elif event.key == pygame.K_6:
+                self.player.active_slot = 5
                 self.player.change_stance("WIND")
             elif event.key == pygame.K_LSHIFT or event.key == pygame.K_RSHIFT:
                 self.combat_manager.trigger_block_parry()
@@ -279,6 +298,7 @@ class GameEngine:
             "scholar_pts": self.scholar_pts,
             "rescued_npcs": self.rescued_npcs,
             "zoom": self.zoom,
+            "structures": self.world.structures,
             "player": {
                 "x": self.player.x,
                 "y": self.player.y,
@@ -294,7 +314,9 @@ class GameEngine:
                 "colors": self.player.colors,
                 "starting_weapon": getattr(self.player, "starting_weapon", "Katana"),
                 "unique_ability": getattr(self.player, "unique_ability", {"name": "", "description": ""}),
-                "crafting_bonus": getattr(self.player, "crafting_bonus", "")
+                "crafting_bonus": getattr(self.player, "crafting_bonus", ""),
+                "inventory": self.player.inventory,
+                "equipped": self.player.equipped
             },
             "world_grid": self.world.grid,
             "mobs": [
@@ -331,6 +353,7 @@ class GameEngine:
         grid = data["world_grid"]
         self.world = World(width=len(grid), height=len(grid[0]))
         self.world.grid = grid
+        self.world.structures = data.get("structures", [])
         
         # Re-build player
         p_data = data["player"]
@@ -352,6 +375,9 @@ class GameEngine:
         self.player.starting_weapon = p_data.get("starting_weapon", "Katana")
         self.player.unique_ability = p_data.get("unique_ability", {"name": "", "description": ""})
         self.player.crafting_bonus = p_data.get("crafting_bonus", "")
+        self.player.inventory = p_data.get("inventory", [])
+        self.player.equipped = p_data.get("equipped", {"HELMET": None, "RING": None, "CAPE": None})
+        self.player.recalculate_stats()
         
         # Re-build managers
         self.combat_manager = CombatManager(self)

@@ -34,8 +34,13 @@ class Player:
         self.stance = "STONE"
         
         # Toolbar & Abilities (Vampire Survivors slot influence)
-        self.toolbar = ["PICKAXE", "KATANA", "BLOCK", "WATER", "WIND"]
+        self.toolbar = ["PICKAXE", "KATANA", "BLOCK", "TORCH", "WATER", "WIND"]
         self.active_slot = 0
+        
+        # Inventory & Equipment
+        self.inventory = []
+        self.equipped = {"HELMET": None, "RING": None, "CAPE": None}
+        self.base_stats = None
         
         # Leveling & Progression (Vampire Survivors level up)
         self.level = 1
@@ -236,6 +241,14 @@ class Player:
                             self.swing_timer = 0.15
                             self.engine.sound_manager.play("block")
                                 
+                elif active_tool == "TORCH":
+                    tile_type = world.get_tile(tx, ty)
+                    if tile_type == world.AIR:
+                        world.set_tile(tx, ty, world.TORCH)
+                        self.is_swinging = True
+                        self.swing_timer = 0.15
+                        self.engine.sound_manager.play("block")
+                                
                 elif active_tool == "WATER":
                     # Toggle Water stance active ability
                     self.change_stance("WATER")
@@ -350,3 +363,54 @@ class Player:
             mdy = mty * rt_size - self.camera_y
             pygame.draw.line(screen, (255, 255, 255), (mdx + int(2*zoom), mdy + int(2*zoom)), (mdx + rt_size - int(2*zoom), mdy + rt_size - int(2*zoom)), 1)
             pygame.draw.line(screen, (255, 255, 255), (mdx + rt_size - int(2*zoom), mdy + int(2*zoom)), (mdx + int(2*zoom), mdy + rt_size - int(2*zoom)), 1)
+
+    def recalculate_stats(self):
+        if not getattr(self, "base_stats", None) or self.base_stats is None:
+            self.base_stats = dict(self.stats)
+            
+        old_max_hp = self.stats["max_health"]
+        self.stats = dict(self.base_stats)
+        
+        # Add equipped item stats
+        for slot, item in self.equipped.items():
+            if item is not None:
+                for stat_name, stat_val in item["bonuses"].items():
+                    if stat_name in self.stats:
+                        self.stats[stat_name] += stat_val
+                        
+        # Adjust current health if max health changed
+        if self.stats["max_health"] != old_max_hp:
+            diff = self.stats["max_health"] - old_max_hp
+            self.health = max(1, min(self.stats["max_health"], self.health + diff))
+
+    def add_item_to_inventory(self, item):
+        if len(self.inventory) < 16:
+            self.inventory.append(item)
+            return True
+        return False
+
+    def equip_item(self, item_index):
+        if item_index < 0 or item_index >= len(self.inventory):
+            return
+        item = self.inventory[item_index]
+        slot = item["slot"]
+        
+        currently_equipped = self.equipped[slot]
+        self.equipped[slot] = item
+        
+        if currently_equipped is not None:
+            self.inventory[item_index] = currently_equipped
+        else:
+            self.inventory.pop(item_index)
+            
+        self.recalculate_stats()
+
+    def unequip_item(self, slot):
+        item = self.equipped[slot]
+        if item is not None:
+            if len(self.inventory) < 16:
+                self.inventory.append(item)
+                self.equipped[slot] = None
+                self.recalculate_stats()
+                return True
+        return False

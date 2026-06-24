@@ -44,6 +44,16 @@ class CombatManager:
         self.parry_flash_timer = 0.0
         self.screen_shake = 0.0
         
+        # Ultimate abilities states
+        self.ultimate_timer = 0.0
+        self.ultimate_cooldown = 15.0
+        self.ultimate_duration_left = 0.0
+        self.ultimate_active_type = None
+        self.ultimate_water_shield_active = False
+        self.ultimate_wind_hurricane_pos = None
+        self.ultimate_wind_timer = 0.0
+        self.ultimate_shake_timer = 0.0 # visual crack shake
+        
         self.projectiles = []
         self.mob_blade_hit_cooldowns = {}
 
@@ -54,6 +64,15 @@ class CombatManager:
     def check_incoming_hit(self, mob):
         player = self.engine.player
         
+        # 0. Tidal Shield Active!
+        if self.ultimate_water_shield_active:
+            reflect_dmg = int(mob.damage * 1.5)
+            mob.take_damage(reflect_dmg, 20, player.x)
+            self.engine.ui_manager.spawn_sparks(mob.x + mob.width/2, mob.y + mob.height/2, (100, 200, 255))
+            mob.attack_cooldown = 1.0
+            self.engine.sound_manager.play("hit")
+            return
+            
         # 1. Perfect Parry!
         if self.parry_active_timer > 0.0:
             self.trigger_perfect_parry()
@@ -198,6 +217,47 @@ class CombatManager:
             self.parry_flash_timer -= dt
         if self.screen_shake > 0:
             self.screen_shake -= dt
+            
+        # Ultimate Stance Timers
+        if self.ultimate_timer > 0:
+            self.ultimate_timer -= dt
+        if self.ultimate_shake_timer > 0:
+            self.ultimate_shake_timer -= dt
+            self.screen_shake = max(self.screen_shake, 0.2)
+            
+        if self.ultimate_duration_left > 0:
+            self.ultimate_duration_left -= dt
+            if self.ultimate_duration_left <= 0:
+                self.ultimate_water_shield_active = False
+                self.ultimate_wind_hurricane_pos = None
+                self.ultimate_active_type = None
+            
+            # Wind Hurricane Vortex pulling/damaging mobs
+            if self.ultimate_active_type == "WIND" and self.ultimate_wind_hurricane_pos is not None:
+                hx, hy = self.ultimate_wind_hurricane_pos
+                for mob in mobs:
+                    mdx = hx - (mob.x + mob.width/2)
+                    mdy = hy - (mob.y + mob.height/2)
+                    dist = math.sqrt(mdx**2 + mdy**2)
+                    if 0 < dist < 200:
+                        pull_speed = 130 * (1.0 - dist / 200)
+                        mob.x += (mdx / dist) * pull_speed * dt
+                        mob.y += (mdy / dist) * pull_speed * dt
+                
+                self.ultimate_wind_timer += dt
+                if self.ultimate_wind_timer >= 0.15:
+                    self.ultimate_wind_timer = 0.0
+                    for mob in mobs:
+                        mdx = hx - (mob.x + mob.width/2)
+                        mdy = hy - (mob.y + mob.height/2)
+                        dist = math.sqrt(mdx**2 + mdy**2)
+                        if dist < 200:
+                            is_crit = random.random() < player.stats["crit_rate"]
+                            dmg = player.stats["base_dmg"] * 0.4
+                            if is_crit:
+                                dmg *= player.stats["crit_dmg"]
+                            mob.take_damage(int(dmg), 3, player.x)
+                            self.engine.ui_manager.spawn_sparks(mob.x + mob.width/2, mob.y + mob.height/2, (200, 230, 255))
 
         # Update mob water blade invulnerability cooldowns
         for mob in list(self.mob_blade_hit_cooldowns.keys()):
@@ -329,3 +389,70 @@ class CombatManager:
                 (draw_x + dx*8*zoom, draw_y + dy*8*zoom),
                 (draw_x - px*0.5, draw_y - py*0.5)
             ])
+
+        # Draw active Tidal Shield (Water Ultimate)
+        if self.ultimate_water_shield_active:
+            for r_offset in range(26, 38, 3):
+                pygame.draw.circle(screen, (100, 180, 255), (int(p_center_x), int(p_center_y)), int(r_offset * zoom), 1)
+
+        # Draw active Hurricane Vortex (Wind Ultimate)
+        if self.ultimate_wind_hurricane_pos is not None:
+            hx_c = self.ultimate_wind_hurricane_pos[0] * zoom - camera_x
+            hy_c = self.ultimate_wind_hurricane_pos[1] * zoom - camera_y
+            for r_offset in range(15, 120, 15):
+                angle = pygame.time.get_ticks() * 0.02 + r_offset * 0.1
+                px = hx_c + math.cos(angle) * r_offset * zoom
+                py = hy_c + math.sin(angle) * r_offset * zoom
+                pygame.draw.circle(screen, (220, 240, 255), (int(px), int(py)), int(3 * zoom))
+                pygame.draw.circle(screen, (150, 180, 220), (int(hx_c), int(hy_c)), int(r_offset * zoom), 1)
+
+    def trigger_ultimate(self):
+        if self.ultimate_timer > 0.0:
+            return
+            
+        player = self.engine.player
+        mobs = self.engine.mob_manager.mobs
+        
+        if player.stance == "STONE":
+            # Earthquake Slam ultimate
+            self.ultimate_timer = self.ultimate_cooldown
+            self.ultimate_shake_timer = 0.5
+            self.engine.sound_manager.play("mine")
+            
+            p_cx = player.x + player.width/2
+            p_cy = player.y + player.height/2
+            
+            # Stun / Damage surrounding mobs
+            for mob in mobs[:]:
+                dx = (mob.x + mob.width/2) - p_cx
+                dy = (mob.y + mob.height/2) - p_cy
+                dist = math.sqrt(dx**2 + dy**2)
+                if dist < 180:
+                    is_crit = random.random() < player.stats["crit_rate"]
+                    dmg = player.stats["base_dmg"] * 3.5
+                    if is_crit:
+                        dmg *= player.stats["crit_dmg"]
+                    mob.take_damage(int(dmg), mob.max_posture, player.x)
+                    mob.stagger_timer = 4.0
+                    mob.vy = -180
+                    mob.vx = 350 if dx > 0 else -350
+                    self.engine.ui_manager.spawn_sparks(mob.x + mob.width/2, mob.y + mob.height/2, (255, 230, 100))
+                    
+            self.engine.ui_manager.add_slash_effect(p_cx, p_cy, 120)
+            
+        elif player.stance == "WATER":
+            # Tidal Shield ultimate
+            self.ultimate_timer = self.ultimate_cooldown
+            self.ultimate_water_shield_active = True
+            self.ultimate_duration_left = 5.0
+            self.ultimate_active_type = "WATER"
+            self.engine.sound_manager.play("block")
+            
+        elif player.stance == "WIND":
+            # Eye of the Storm ultimate
+            self.ultimate_timer = self.ultimate_cooldown
+            self.ultimate_wind_hurricane_pos = (player.x + player.width/2, player.y + player.height/2)
+            self.ultimate_duration_left = 4.0
+            self.ultimate_active_type = "WIND"
+            self.ultimate_wind_timer = 0.0
+            self.engine.sound_manager.play("swing")
