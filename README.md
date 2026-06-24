@@ -5,7 +5,7 @@
 [![Theme](https://img.shields.io/badge/Theme-Catppuccin_Mocha-maroon.svg?style=flat-square)](https://github.com/catppuccin/catppuccin)
 [![License: MIT](https://img.shields.io/badge/License-MIT-lightgrey.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
-A pixelated 2D action exploration game combining the swarm mechanics of **Vampire Survivors**, the block-mining world design of **Terraria**, the stance-based combat of **Ghost of Tsushima**, and a roster of 69 pop-culture selectable heroes.
+A pixelated 2D action exploration game combining the swarm mechanics of **Vampire Survivors**, the block-mining world design of **Terraria**, the stance-based combat of **Ghost of Tsushima**, and a roster of 94 pop-culture selectable heroes.
 
 ---
 
@@ -23,7 +23,7 @@ A pixelated 2D action exploration game combining the swarm mechanics of **Vampir
 
 ## ✨ Key Features
 
-- 👥 **69 Selectable Heroes**: Play as Chappell Roan, Olivia Rodrigo, The Mandalorian, Steve Harrington, Goku, Zoro, Wednesday Addams, and many more. Each features customized pixel color themes, stats (Max Health, Speed, Armor, Magnet), and custom starting weapons.
+- 👥 **94 Selectable Heroes**: Play as Dua Lipa, Saitama, Charli XCX, Moo Deng, Chappell Roan, Olivia Rodrigo, Steve Harrington, Goku, Zoro, and many more. Each features customized pixel color themes, stats (Max Health, Speed, Armor, Magnet), and custom starting weapons.
 - ⚔️ **Stance Combat System**: Swap between **Stone** (heavy posture break), **Water** (spinning auto-shield blades), and **Wind** (seeking projectile wind slashes) stances.
 - 🛡️ **Parrying & Blocking**: Hold Shift to block damage or tap it at the perfect moment to trigger a **Perfect Parry** counter-attack that sweeps surrounding mobs.
 - ☁️ **Parallax Sky & Caves**: Floating clouds and a glowing sun above-ground, transitioning into dark cave layers generated procedurally.

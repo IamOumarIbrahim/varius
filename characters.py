@@ -1294,6 +1294,473 @@ CHARACTERS_DB = [
       "pants": (220, 180, 160),
       "eyes": (70, 45, 30)
     }
+  },
+  {
+    "name": "Dua Lipa",
+    "origin": "Pop Culture / Music",
+    "stats": { "max_health": 95, "move_speed": 1.3, "armor": 2, "magnet_range": 3.2 },
+    "starting_weapon": "Levitating Laser Disco",
+    "unique_ability": {
+      "name": "Radical Optimism Wave",
+      "description": "Every 14 seconds, projects a expanding neon grid across the floor tiles. Any enemies stepped on the grid get bounced backwards and irradiated with rainbow damage."
+    },
+    "crafting_bonus": "Allows crafting tables to build glowing glass and neon furniture blocks using 50% fewer standard sand blocks.",
+    "theme": {
+      "hair": (150, 20, 50),      # Cherry red hair
+      "skin": (230, 185, 145),    # Olive skin
+      "shirt": (200, 200, 220),   # Silver glitter top
+      "pants": (30, 30, 30),
+      "eyes": (70, 45, 30)
+    }
+  },
+  {
+    "name": "Carmy Berzatto",
+    "origin": "The Bear",
+    "stats": { "max_health": 110, "move_speed": 1.25, "armor": 3, "magnet_range": 2.0 },
+    "starting_weapon": "Chef's Chopping Knife",
+    "unique_ability": {
+      "name": "Yes Chef! Panic Mode",
+      "description": "When the screen contains more than 30 enemy targets, his attack speed doubles and his movement becomes erratic for 6 seconds as kitchen ticket stress spikes."
+    },
+    "crafting_bonus": "Cooking stations, kitchens, and alembic setups craft food items and recovery dishes instantly with double the stat recovery value.",
+    "theme": {
+      "hair": (110, 80, 50),      # Curly dark hair
+      "skin": (245, 215, 185),    # Pale chef skin
+      "shirt": (30, 60, 150),     # Blue apron / white shirt
+      "pants": (25, 25, 25),
+      "eyes": (70, 120, 240)
+    }
+  },
+  {
+    "name": "Paris Geller",
+    "origin": "Gilmore Girls",
+    "stats": { "max_health": 90, "move_speed": 1.1, "armor": 1, "magnet_range": 3.8 },
+    "starting_weapon": "Spiteful Debate Podiums",
+    "unique_ability": {
+      "name": "Neurotic Filibuster",
+      "description": "Launches an uninterrupted verbal barrage that stuns and fractures elite monsters or boss types, lowering their armor rating by a flat 50%."
+    },
+    "crafting_bonus": "Speeds up tech-tree progression research and blueprint parsing speeds by a massive 40% when interacting with historical bookshelves.",
+    "theme": {
+      "hair": (235, 210, 110),    # Blonde bob
+      "skin": (255, 220, 190),
+      "shirt": (40, 70, 130),     # Blue uniform vest
+      "pants": (100, 75, 50),     # Brown skirt
+      "eyes": (60, 130, 70)
+    }
+  },
+  {
+    "name": "Elena Gilbert",
+    "origin": "The Vampire Diaries",
+    "stats": { "max_health": 100, "move_speed": 1.15, "armor": 2, "magnet_range": 2.5 },
+    "starting_weapon": "Doppelganger Mirror Strike",
+    "unique_ability": {
+      "name": "Petrova Bloodline Curse",
+      "description": "Taking fatal damage has a 50% chance to immediately resurrect her at 30% health, triggering a localized shadow explosion that clears nearby horde units."
+    },
+    "crafting_bonus": "Doubles the collection yield when harvesting rare flora, alchemy flowers, and mystical wood blocks in forest biomes.",
+    "theme": {
+      "hair": (85, 55, 35),       # Straight brown hair
+      "skin": (255, 220, 190),
+      "shirt": (160, 40, 50),     # Red knit top
+      "pants": (50, 70, 140),     # Blue jeans
+      "eyes": (70, 45, 30)
+    }
+  },
+  {
+    "name": "Drake",
+    "origin": "Pop Culture / Music",
+    "stats": { "max_health": 105, "move_speed": 1.15, "armor": 3, "magnet_range": 4.0 },
+    "starting_weapon": "OVO Owl Sonic Ring",
+    "unique_ability": {
+      "name": "Certified Lover Boy Charm",
+      "description": "Periodically forces up to 5 non-boss ground enemies to completely change their allegiance, walking into the horde to act as meat shields."
+    },
+    "crafting_bonus": "Increases the overall coin and gold-brick drop values from underground chests and smashed ceramic pottery by 30%.",
+    "theme": {
+      "hair": (20, 20, 20),       # Fade buzzcut
+      "skin": (180, 140, 105),    # Light brown skin
+      "shirt": (245, 200, 40),    # Yellow OVO hoodie
+      "pants": (30, 30, 30),
+      "eyes": (40, 30, 20)
+    }
+  },
+  {
+    "name": "Saitama",
+    "origin": "One Punch Man",
+    "stats": { "max_health": 200, "move_speed": 1.5, "armor": 5, "magnet_range": 1.0 },
+    "starting_weapon": "Normal Punch",
+    "unique_ability": {
+      "name": "Consecutive Normal Punches",
+      "description": "Every 25 seconds, unleashes a short-range physical fury that completely obliterates any enemies and instantly mines a 5-block deep tunnel through any hard world tiles."
+    },
+    "crafting_bonus": "Can mine raw iron, obsidian, or hard dungeon bricks using completely bare fists without requiring a pickaxe tool.",
+    "theme": {
+      "hair": (50, 50, 50),
+      "skin": (255, 220, 190),
+      "shirt": (255, 210, 20),    # Yellow hero suit
+      "pants": (220, 40, 40),     # Red boots
+      "eyes": (20, 20, 20),
+      "is_bald": True,
+      "has_cape": True,
+      "cape_color": (240, 240, 240)
+    }
+  },
+  {
+    "name": "Arthur Morgan",
+    "origin": "Red Dead Redemption 2",
+    "stats": { "max_health": 140, "move_speed": 1.1, "armor": 5, "magnet_range": 1.9 },
+    "starting_weapon": "Cattleman Revolver",
+    "unique_ability": {
+      "name": "Dead Eye Targeting",
+      "description": "Slows down enemy movement speed by 60% for 3 seconds while locking onto and shooting the 6 closest targets with critical damage bullets."
+    },
+    "crafting_bonus": "Crafting base campfires, wood fences, ropes, and survival scaffolding costs 50% fewer timber raw resources.",
+    "theme": {
+      "hair": (90, 65, 45),       # Messy brown hair
+      "skin": (235, 185, 140),    # Weathered skin
+      "shirt": (70, 110, 160),    # Blue cowboy shirt
+      "pants": (45, 45, 45),
+      "eyes": (60, 110, 100),
+      "has_fedora": True          # Stetson cowboy hat
+    }
+  },
+  {
+    "name": "Wanda Maximoff",
+    "origin": "Marvel Universe",
+    "stats": { "max_health": 95, "move_speed": 1.2, "armor": 2, "magnet_range": 2.8 },
+    "starting_weapon": "Chaos Magic Hex Bolts",
+    "unique_ability": {
+      "name": "Reality Distortion Hex",
+      "description": "Turns a cluster of 10 incoming enemies into passive, breakable environmental objects like stone pillars, wood blocks, or copper ore clusters."
+    },
+    "crafting_bonus": "Can use alchemy transmuting grids to change low-tier dirt or stone blocks directly into basic copper or iron metal ores.",
+    "theme": {
+      "hair": (195, 65, 30),      # Copper red hair
+      "skin": (255, 220, 190),
+      "shirt": (170, 30, 40),     # Scarlet corset
+      "pants": (25, 25, 25),
+      "eyes": (255, 50, 50),      # Red glowing eyes
+      "has_cape": True,
+      "cape_color": (160, 20, 30)
+    }
+  },
+  {
+    "name": "Steve",
+    "origin": "Minecraft",
+    "stats": { "max_health": 120, "move_speed": 1.1, "armor": 4, "magnet_range": 2.4 },
+    "starting_weapon": "Diamond Pickaxe Swipe",
+    "unique_ability": {
+      "name": "Panic Block Placement",
+      "description": "When attacked, immediately places a 3x3 protective dirt wall grid around his current coordinates to safely block out incoming monster projectiles."
+    },
+    "crafting_bonus": "Increases the maximum item stack capacity constraint inside the global backpack inventory storage from 99 up to 999 items.",
+    "theme": {
+      "hair": (80, 50, 25),       # Blocky brown hair
+      "skin": (220, 160, 120),    # Tan skin
+      "shirt": (0, 190, 200),     # Cyan t-shirt
+      "pants": (50, 60, 160),     # Blue pants
+      "eyes": (120, 80, 200)
+    }
+  },
+  {
+    "name": "Lana Del Rey",
+    "origin": "Pop Culture / Music",
+    "stats": { "max_health": 85, "move_speed": 1.05, "armor": 3, "magnet_range": 3.6 },
+    "starting_weapon": "Summertime Sadness Fog",
+    "unique_ability": {
+      "name": "Vintage Melancholy Aura",
+      "description": "Projects a persistent sepia aura ring that slows enemy projectiles and ticks continuous ice/frost damage onto standard ground monster sprites."
+    },
+    "crafting_bonus": "Can use calligraphy and desk stations to craft mystical paper scrolls that act as permanent music-box ambient background buffs.",
+    "theme": {
+      "hair": (115, 70, 45),      # Auburn brown waves
+      "skin": (255, 235, 225),    # Pale skin
+      "shirt": (240, 240, 250),   # White ribbon dress
+      "pants": (240, 240, 250),
+      "eyes": (65, 40, 25)
+    }
+  },
+  {
+    "name": "Zagreus",
+    "origin": "Hades",
+    "stats": { "max_health": 130, "move_speed": 1.4, "armor": 4, "magnet_range": 2.1 },
+    "starting_weapon": "Stygian Blade Slash",
+    "unique_ability": {
+      "name": "Olympian Dash Boon",
+      "description": "Dashing forward leaves a trail of divine deflected sparks that reflect incoming arrows and ignite surface tiles with secondary lightning damage."
+    },
+    "crafting_bonus": "Upon experiencing a player death screen, retains 20% of harvested world gems and hard gold coins inside the permanent stash.",
+    "theme": {
+      "hair": (20, 20, 20),       # Spiky black hair (laurel)
+      "skin": (245, 245, 245),    # Underworld pale
+      "shirt": (200, 30, 40),     # Toga and shoulder guard
+      "pants": (180, 30, 30),
+      "eyes": (220, 40, 40),      # Flaming red eyes
+      "has_green_cap": True       # Representing the laurel wreath
+    }
+  },
+  {
+    "name": "Rihanna",
+    "origin": "Pop Culture / Music",
+    "stats": { "max_health": 100, "move_speed": 1.2, "armor": 4, "magnet_range": 4.2 },
+    "starting_weapon": "Diamond Shine Laser",
+    "unique_ability": {
+      "name": "Shine Bright Shockwave",
+      "description": "Triggers a blinding crystalline explosion that illuminates dark subterranean fog systems completely while turning common enemies to stone formats."
+    },
+    "crafting_bonus": "Extracts raw crystals, diamonds, and precious gems at a 35% higher drop rate when structural mining in deep underground biomes.",
+    "theme": {
+      "hair": (20, 20, 20),       # Sleek black ponytail
+      "skin": (185, 140, 100),    # Warm caramel
+      "shirt": (230, 40, 50),     # Red puffer outfit
+      "pants": (230, 40, 50),
+      "eyes": (60, 140, 90),
+      "has_ponytail": True
+    }
+  },
+  {
+    "name": "Thanos",
+    "origin": "Marvel Universe",
+    "stats": { "max_health": 190, "move_speed": 0.85, "armor": 10, "magnet_range": 1.5 },
+    "starting_weapon": "Titan Double-Blade",
+    "unique_ability": {
+      "name": "Perfect Balance Snap",
+      "description": "Instantly deletes exactly 50% of the active onscreen enemy targets, but costs 25% of his current health value to deploy the cosmic strain."
+    },
+    "crafting_bonus": "Increases the upgrade quality limits of heavy armors and weapons at standard anvils past their default base level caps.",
+    "theme": {
+      "hair": (50, 50, 50),
+      "skin": (150, 110, 180),    # Titan purple
+      "shirt": (210, 165, 30),    # Gold armor plates
+      "pants": (210, 165, 30),
+      "eyes": (30, 30, 30),
+      "is_bald": True
+    }
+  },
+  {
+    "name": "Travis Kelce",
+    "origin": "Pop Culture / Sports",
+    "stats": { "max_health": 150, "move_speed": 1.3, "armor": 6, "magnet_range": 1.8 },
+    "starting_weapon": "Football Spiral Pass",
+    "unique_ability": {
+      "name": "Red Zone Cleaving Rush",
+      "description": "Charges forward in an unstoppable straight line, physics-knocking enemies to the side of the screen and busting through weak wooden blocks."
+    },
+    "crafting_bonus": "Gains a 25% jump height modifier and stamina acceleration bonus when stepping along green grass or leaf block environments.",
+    "theme": {
+      "hair": (110, 85, 60),      # Buzzcut and beard
+      "skin": (255, 220, 190),
+      "shirt": (200, 30, 40),     # Red jersey #87
+      "pants": (240, 240, 240),
+      "eyes": (60, 110, 200),
+      "has_goatee": True
+    }
+  },
+  {
+    "name": "Bill Cipher",
+    "origin": "Gravity Falls",
+    "stats": { "max_health": 80, "move_speed": 1.25, "armor": 5, "magnet_range": 3.0 },
+    "starting_weapon": "Weirdmageddon Eye Beam",
+    "unique_ability": {
+      "name": "Madness Bubble Shift",
+      "description": "Fires a chaotic bubble that randomizes the target mechanics of enemies inside it, changing their gravity orientation so they float to the roof."
+    },
+    "crafting_bonus": "Causes storage chests to occasionally spawn completely glitched, high-tier loot patterns instead of common tier materials.",
+    "theme": {
+      "hair": (20, 20, 20),
+      "skin": (255, 225, 0),      # Yellow triangle
+      "shirt": (20, 20, 20),      # Bow tie
+      "pants": (255, 225, 0),
+      "eyes": (255, 255, 255),    # Eye of Providence
+      "is_bald": True,
+      "has_fedora": True          # Top hat
+    }
+  },
+  {
+    "name": "Charli XCX",
+    "origin": "Pop Culture / Music",
+    "stats": { "max_health": 90, "move_speed": 1.4, "armor": 2, "magnet_range": 3.4 },
+    "starting_weapon": "Brat Green Laser Wall",
+    "unique_ability": {
+      "name": "360 Party Crash",
+      "description": "Every 12 seconds, triggers a hyperpop bass drop that gives a massive 50% movement speed burst and leaves a toxic neon trail that melts enemy armor values."
+    },
+    "crafting_bonus": "Transforms regular wire and basic gems into glowing neon club light tiles at zero cost.",
+    "theme": {
+      "hair": (25, 20, 20),       # Messy dark hair
+      "skin": (255, 215, 185),
+      "shirt": (143, 219, 0),     # BRAT neon green
+      "pants": (25, 25, 25),
+      "eyes": (50, 30, 20)
+    }
+  },
+  {
+    "name": "Eminem",
+    "origin": "Pop Culture / Music",
+    "stats": { "max_health": 115, "move_speed": 1.25, "armor": 4, "magnet_range": 2.2 },
+    "starting_weapon": "Rap God Mic Blast",
+    "unique_ability": {
+      "name": "Mom's Spaghetti Drop",
+      "description": "Killing 75 enemies spawns a unique skillet item on the floor. Collecting it restores 40 HP and fully resets all active weapon cooldown parameters."
+    },
+    "crafting_bonus": "Crafts sonic traps, speakers, and soundwave defenses using 30% fewer metal components.",
+    "theme": {
+      "hair": (240, 230, 160),    # Bleach blonde crop
+      "skin": (255, 220, 190),
+      "shirt": (100, 100, 110),   # Gray hoodie
+      "pants": (100, 100, 110),
+      "eyes": (100, 130, 160)
+    }
+  },
+  {
+    "name": "Kris Jenner",
+    "origin": "Pop Culture / Reality TV",
+    "stats": { "max_health": 100, "move_speed": 1.1, "armor": 3, "magnet_range": 4.5 },
+    "starting_weapon": "Corporate Contract Slap",
+    "unique_ability": {
+      "name": "The Momager Shield",
+      "description": "Summons a rotating barrier of 3 heavy security guards that completely block out enemy projectiles. Guard count refreshes every 20 seconds."
+    },
+    "crafting_bonus": "Gains a permanent '10% Manager Cut'—returns 15% of all raw resources spent when building at any workstation.",
+    "theme": {
+      "hair": (20, 20, 20),       # Pixie cut
+      "skin": (240, 195, 160),
+      "shirt": (30, 30, 30),      # Black manager suit
+      "pants": (30, 30, 30),
+      "eyes": (60, 40, 30)
+    }
+  },
+  {
+    "name": "Squidward Tentacles",
+    "origin": "SpongeBob SquarePants",
+    "stats": { "max_health": 95, "move_speed": 1.0, "armor": 2, "magnet_range": 2.6 },
+    "starting_weapon": "Off-Key Clarinet Blast",
+    "unique_ability": {
+      "name": "Artistic Meltdown",
+      "description": "Unleashes an agonizing sonic shockwave that fractures elite monsters and instantly breaks down surrounding background tiles into raw items."
+    },
+    "crafting_bonus": "Can refine basic stone blocks into pristine, decorative marble structures without using a heavy furnace.",
+    "theme": {
+      "hair": (40, 40, 40),
+      "skin": (140, 200, 190),    # Turquoise skin
+      "shirt": (130, 85, 45),     # Brown collar shirt
+      "pants": (140, 200, 190),
+      "eyes": (230, 220, 60),     # Red pupil / yellow eyes
+      "is_bald": True
+    }
+  },
+  {
+    "name": "Ryomen Sukuna",
+    "origin": "Jujutsu Kaisen",
+    "stats": { "max_health": 140, "move_speed": 1.3, "armor": 6, "magnet_range": 1.8 },
+    "starting_weapon": "Cleave & Dismantle",
+    "unique_ability": {
+      "name": "Malevolent Shrine",
+      "description": "Deploys a giant domain network for 5 seconds that automatically slices everything on screen, shredding block walls and enemies into raw materials."
+    },
+    "crafting_bonus": "Weapons upgraded at anvils gain a permanent +5% chance to trigger life-steal mechanics on critical strikes.",
+    "theme": {
+      "hair": (230, 140, 180),    # Pink spiky
+      "skin": (245, 210, 180),    # Tattoos skin
+      "shirt": (240, 235, 230),   # Light yukata robe
+      "pants": (35, 35, 40),
+      "eyes": (220, 30, 30)
+    }
+  },
+  {
+    "name": "Rhaenyra Targaryen",
+    "origin": "House of the Dragon",
+    "stats": { "max_health": 110, "move_speed": 1.15, "armor": 4, "magnet_range": 2.1 },
+    "starting_weapon": "Syrax Fireball Flare",
+    "unique_ability": {
+      "name": "Dracarys Carpet-Bomb",
+      "description": "Summons a golden dragon shadow to cross the viewport, bathing the ground plane in high-intensity flames that melt raw iron, lead, and copper tiles."
+    },
+    "crafting_bonus": "All forged swords, blades, and axes gain a permanent flat +15% armor penetration property.",
+    "theme": {
+      "hair": (245, 245, 250),    # Silver-gold Targaryen hair
+      "skin": (255, 220, 195),
+      "shirt": (140, 25, 35),     # Crimson/black gown
+      "pants": (200, 160, 40),
+      "eyes": (110, 100, 220),
+      "has_braids": True
+    }
+  },
+  {
+    "name": "Leon S. Kennedy",
+    "origin": "Resident Evil",
+    "stats": { "max_health": 130, "move_speed": 1.2, "armor": 5, "magnet_range": 2.0 },
+    "starting_weapon": "Tactical Laser Pistol",
+    "unique_ability": {
+      "name": "Roundhouse Kick Counter",
+      "description": "Successfully dodging an incoming attack triggers a sweeping kick that knocks back immediate waves and shatters background furniture crates."
+    },
+    "crafting_bonus": "Can synthesize generic wild plants and mushrooms into elite maximum-tier health recovery potions.",
+    "theme": {
+      "hair": (210, 185, 120),    # Curtain blonde
+      "skin": (255, 220, 190),
+      "shirt": (100, 65, 40),     # Leather jacket
+      "pants": (50, 50, 55),
+      "eyes": (80, 130, 220)
+    }
+  },
+  {
+    "name": "Elle Woods",
+    "origin": "Legally Blonde",
+    "stats": { "max_health": 100, "move_speed": 1.2, "armor": 3, "magnet_range": 3.6 },
+    "starting_weapon": "Scented Resume Toss",
+    "unique_ability": {
+      "name": "Bend and Snap Stun",
+      "description": "Executes a flawless maneuver that charms and freezes all screen threats in place for 4 seconds while pulling loose loot items directly to her feet."
+    },
+    "crafting_bonus": "Can coat any basic armor piece in hot pink styling, granting a permanent +5% passive dodge rate modifier.",
+    "theme": {
+      "hair": (250, 220, 100),    # Long blonde hair
+      "skin": (255, 215, 195),
+      "shirt": (245, 75, 175),    # Hot pink outfit
+      "pants": (245, 75, 175),
+      "eyes": (70, 140, 230),
+      "has_ponytail": True
+    }
+  },
+  {
+    "name": "Moo Deng",
+    "origin": "Internet Memes / Pop Culture",
+    "stats": { "max_health": 160, "move_speed": 1.35, "armor": 8, "magnet_range": 1.5 },
+    "starting_weapon": "Sassy Pygmy Chomp",
+    "unique_ability": {
+      "name": "Water Spray Slippage",
+      "description": "Bounces around erratically when taking hit damage, spraying water pools that slip enemies and immediately extinguish environmental lava or fire hazards."
+    },
+    "crafting_bonus": "Mines mud and clay tiles at 2x speed; standing on mud blocks grants a massive health regeneration boost.",
+    "theme": {
+      "hair": (50, 50, 50),
+      "skin": (160, 140, 135),    # Grey pygmy hippo coat
+      "shirt": (215, 180, 180),   # Rosy underbelly
+      "pants": (160, 140, 135),
+      "eyes": (30, 30, 30),
+      "is_bald": True
+    }
+  },
+  {
+    "name": "Miles Morales",
+    "origin": "Spider-Man: Across the Spider-Verse",
+    "stats": { "max_health": 120, "move_speed": 1.45, "armor": 3, "magnet_range": 2.4 },
+    "starting_weapon": "Venom Strike Spark",
+    "unique_ability": {
+      "name": "Bio-Electric Camouflage",
+      "description": "Turns completely invisible for 3 seconds when heavily surrounded, charging a bio-electric dive that craters terrain blocks and paralyzes targets."
+    },
+    "crafting_bonus": "Can spray neon graffiti tags onto solid stone walls to permanently illuminate dark cave systems and map grids.",
+    "theme": {
+      "hair": (15, 15, 15),
+      "skin": (70, 50, 35),
+      "shirt": (25, 25, 25),      # Black/red spider suit
+      "pants": (25, 25, 25),
+      "eyes": (250, 250, 250)     # White spider mask lenses
+    }
   }
 ]
+
 
