@@ -62,7 +62,7 @@ class CombatManager:
             
         # 2. Normal Block (if player is holding Space)
         keys = pygame.key.get_pressed()
-        is_blocking = keys[pygame.K_SPACE]
+        is_blocking = keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
         
         if is_blocking:
             # Reduce posture
@@ -83,8 +83,10 @@ class CombatManager:
             mob.attack_cooldown = 1.5
             return
             
-        # 3. Take Full Damage
-        player.take_damage(mob.damage)
+        # 3. Take Damage reduced by Armor
+        armor = player.stats.get("armor", 0)
+        damage_taken = max(1, mob.damage - armor)
+        player.take_damage(damage_taken)
         mob.attack_cooldown = 1.5
 
     def trigger_perfect_parry(self):
@@ -167,6 +169,12 @@ class CombatManager:
                     posture_dmg = 14
                     mob.vx = player.direction * 200
                     mob.vy = -110
+                
+                # Homelander's Fragile Ego damage scaling
+                char_name = getattr(player, "char_name", "")
+                if char_name == "Homelander":
+                    hp_pct = player.health / player.stats["max_health"]
+                    dmg = dmg * (1.0 + hp_pct)
                     
                 if is_crit:
                     dmg *= player.stats["crit_dmg"]

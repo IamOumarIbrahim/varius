@@ -3,6 +3,7 @@ import math
 import random
 import os
 import json
+from characters import CHARACTERS_DB
 
 class Spark:
     def __init__(self, x, y, color):
@@ -57,12 +58,8 @@ class SettingsPanel:
         self.font_title = pygame.font.SysFont("Courier", 22, bold=True)
         self.font_main = pygame.font.SysFont("Courier", 14)
         self.font_header = pygame.font.SysFont("Courier", 14, bold=True)
-        
-        # Sliders positions (X start, width, Y offset)
         self.slider_x = 380
         self.slider_w = 260
-        
-        # Save/load slot click zones
         self.buttons = []
 
     def handle_event(self, event):
@@ -73,44 +70,32 @@ class SettingsPanel:
             mouse_pos = event.pos
             self.handle_click(mouse_pos)
         elif event.type == pygame.MOUSEMOTION:
-            # Handle dragging sliders
             if pygame.mouse.get_pressed()[0]:
                 self.handle_slider_drag(event.pos)
 
     def handle_slider_drag(self, pos):
         mx, my = pos
-        # Check if clicking horizontally near slider width
         if self.slider_x <= mx <= self.slider_x + self.slider_w:
             ratio = (mx - self.slider_x) / self.slider_w
-            
-            # Zoom slider (y=210)
             if 200 <= my <= 235:
                 self.engine.zoom = round(1.0 + ratio * 1.5, 2)
-            # SFX Volume slider (y=270)
             elif 260 <= my <= 295:
                 sfx_vol = ratio
                 self.engine.sound_manager.set_sfx_volume(sfx_vol)
-            # Music Volume slider (y=330)
             elif 320 <= my <= 355:
                 music_vol = ratio
                 self.engine.sound_manager.set_music_volume(music_vol)
 
     def handle_click(self, pos):
-        # 1. Trigger drag check first
         self.handle_slider_drag(pos)
-        
-        # 2. Check Save/Load slot buttons
         for btn in self.buttons:
             if btn["rect"].collidepoint(pos):
                 slot = btn["slot"]
                 act = btn["action"]
-                
                 if act == "SAVE":
                     self.engine.save_game(slot)
-                    self.engine.sound_manager.play("click")
                 elif act == "LOAD":
                     self.engine.load_game(slot)
-                    self.engine.sound_manager.play("click")
                 break
 
     def get_slot_metadata(self, slot_num):
@@ -119,49 +104,42 @@ class SettingsPanel:
             try:
                 with open(filename, "r") as f:
                     data = json.load(f)
+                char_name = data.get("player", {}).get("char_name", "Hero")
                 lvl = data.get("player", {}).get("level", 1)
                 t = data.get("survival_time", 0.0)
                 m = int(t // 60)
                 s = int(t % 60)
-                return f"Lvl {lvl} - Time {m:02d}:{s:02d} - Gold {data.get('gold', 0)}"
+                return f"{char_name} (Lvl {lvl}) - {m:02d}:{s:02d} - {data.get('gold', 0)}g"
             except Exception:
                 return "Corrupt Data"
         return "Empty Slot"
 
     def draw(self, screen):
-        # Transparency backdrop
         overlay = pygame.Surface((1024, 768), pygame.SRCALPHA)
         overlay.fill((20, 20, 30, 225))
         screen.blit(overlay, (0, 0))
 
-        # Borders
         border_rect = pygame.Rect(180, 80, 664, 608)
         pygame.draw.rect(screen, (32, 38, 48), border_rect, 0, 8)
         pygame.draw.rect(screen, (80, 100, 130), border_rect, 3, 8)
 
-        # Title
         t_surf = self.font_title.render("GAME SETTINGS & SAVE PROFILE PANEL", True, (255, 255, 255))
         screen.blit(t_surf, (512 - t_surf.get_width()//2, 100))
         
         guide = self.font_main.render("Adjust configurations and manage save states. Press [O] to Close Settings.", True, (150, 180, 200))
         screen.blit(guide, (512 - guide.get_width()//2, 134))
 
-        # --- SLIDERS RENDERING ---
-        # Slider 1: Render Zoom Scale (1.0x to 2.5x)
+        # Sliders
         ratio_zoom = (self.engine.zoom - 1.0) / 1.5
         self.draw_slider(screen, 215, "Zoom Scale", f"{self.engine.zoom:.2f}x", ratio_zoom)
 
-        # Slider 2: SFX Volume
         ratio_sfx = self.engine.sound_manager.sfx_volume
         self.draw_slider(screen, 275, "SFX Volume", f"{int(ratio_sfx*100)}%", ratio_sfx)
 
-        # Slider 3: Music Volume
         ratio_music = self.engine.sound_manager.music_volume
         self.draw_slider(screen, 335, "Music Volume", f"{int(ratio_music*100)}%", ratio_music)
 
-        # --- 3-SLOT SAVE STATE MANAGER ---
         pygame.draw.line(screen, (60, 80, 110), (220, 380), (800, 380), 2)
-        
         lbl_save = self.font_header.render("SAVE / LOAD GAME SLOTS", True, (255, 215, 0))
         screen.blit(lbl_save, (512 - lbl_save.get_width()//2, 395))
 
@@ -171,18 +149,15 @@ class SettingsPanel:
 
         for slot in range(1, 4):
             curr_y = start_y + (slot - 1) * row_h
-            
-            # Slot Number Label
             s_label = self.font_header.render(f"Slot {slot}:", True, (255, 255, 255))
             screen.blit(s_label, (220, curr_y + 12))
             
-            # Slot Metadata description
             meta = self.get_slot_metadata(slot)
             color = (130, 220, 150) if meta != "Empty Slot" else (150, 150, 150)
             meta_surf = self.font_main.render(meta, True, color)
             screen.blit(meta_surf, (310, curr_y + 12))
 
-            # [SAVE BUTTON]
+            # [SAVE]
             btn_save = pygame.Rect(600, curr_y + 6, 80, 28)
             pygame.draw.rect(screen, (30, 60, 45), btn_save, 0, 4)
             pygame.draw.rect(screen, (100, 220, 130), btn_save, 1, 4)
@@ -190,7 +165,7 @@ class SettingsPanel:
             screen.blit(t_s, (623, curr_y + 14))
             self.buttons.append({"rect": btn_save, "action": "SAVE", "slot": slot})
 
-            # [LOAD BUTTON] (only highlight if exists)
+            # [LOAD]
             exists = meta != "Empty Slot"
             btn_load = pygame.Rect(695, curr_y + 6, 80, 28)
             bg_col = (40, 50, 65) if exists else (25, 25, 25)
@@ -204,26 +179,16 @@ class SettingsPanel:
             
             if exists:
                 self.buttons.append({"rect": btn_load, "action": "LOAD", "slot": slot})
-
-            # Dividing slots lines
             pygame.draw.line(screen, (40, 50, 65), (220, curr_y + row_h - 10), (800, curr_y + row_h - 10), 1)
 
     def draw_slider(self, screen, y, title, val_str, ratio):
-        # Title Label
         lbl_surf = self.font_header.render(title, True, (220, 220, 220))
         screen.blit(lbl_surf, (220, y - 6))
-        
-        # Slider Line background
         pygame.draw.line(screen, (50, 60, 80), (self.slider_x, y), (self.slider_x + self.slider_w, y), 6)
-        # Slider Line filled portion
         pygame.draw.line(screen, (0, 200, 255), (self.slider_x, y), (self.slider_x + int(self.slider_w * ratio), y), 6)
-        
-        # Sliding knob circle
         knob_x = self.slider_x + int(self.slider_w * ratio)
         pygame.draw.circle(screen, (255, 255, 255), (knob_x, y), 8)
         pygame.draw.circle(screen, (0, 150, 255), (knob_x, y), 5)
-
-        # Value text string representation
         val_surf = self.font_header.render(val_str, True, (255, 215, 0))
         screen.blit(val_surf, (self.slider_x + self.slider_w + 20, y - 6))
 
@@ -234,7 +199,6 @@ class TownPanel:
         self.font_title = pygame.font.SysFont("Courier", 22, bold=True)
         self.font_main = pygame.font.SysFont("Courier", 14)
         self.font_header = pygame.font.SysFont("Courier", 14, bold=True)
-        
         self.buttons = []
 
     def handle_event(self, event):
@@ -251,7 +215,6 @@ class TownPanel:
                 action = btn["action"]
                 npc = btn["npc"]
                 
-                self.engine.sound_manager.play("click")
                 if action == "ASSIGN_MINER":
                     npc["job"] = "Miner"
                 elif action == "ASSIGN_BLACKSMITH":
@@ -303,7 +266,6 @@ class TownPanel:
         pygame.draw.line(screen, (40, 70, 50), (80, 210), (944, 210), 2)
 
         self.buttons = []
-
         if not self.engine.rescued_npcs:
             empty_surf = self.font_main.render("No survivors rescued yet! Explore the caves and break caged cells to rescue villagers.", True, (130, 160, 140))
             screen.blit(empty_surf, (120, 250))
@@ -334,13 +296,11 @@ class TownPanel:
                 btn_rect = pygame.Rect(btn_x, curr_y + 10, 75, 28)
                 pygame.draw.rect(screen, (30, 50, 40), btn_rect, 0, 4)
                 pygame.draw.rect(screen, j_col, btn_rect, 1, 4)
-                
                 if npc["job"] == j_title or (j_title == "Smith" and npc["job"] == "Blacksmith"):
                     pygame.draw.rect(screen, (j_col[0]//2, j_col[1]//2, j_col[2]//2), btn_rect, 0, 4)
                 
                 j_surf = pygame.font.SysFont("Courier", 11, bold=True).render(j_title, True, (255, 255, 255))
                 screen.blit(j_surf, (btn_x + 8, curr_y + 18))
-                
                 self.buttons.append({"rect": btn_rect, "action": j_act, "npc": npc})
                 btn_x += 85
 
@@ -354,7 +314,6 @@ class TownPanel:
             upg_text = f"Level+ ({upg_cost}g)"
             u_surf = pygame.font.SysFont("Courier", 10, bold=True).render(upg_text, True, (255, 255, 255) if can_afford else (130, 130, 130))
             screen.blit(u_surf, (btn_x + 15, curr_y + 18))
-            
             self.buttons.append({"rect": upg_btn_rect, "action": "LEVEL_UP", "npc": npc})
             pygame.draw.line(screen, (25, 45, 30), (80, curr_y + row_h), (944, curr_y + row_h), 1)
 
@@ -367,10 +326,14 @@ class UIManager:
         
         self.font_hud = pygame.font.SysFont("Courier", 14, bold=True)
         self.font_large = pygame.font.SysFont("Courier", 32, bold=True)
-        self.font_sub = pygame.font.SysFont("Courier", 18)
+        self.font_sub = pygame.font.SysFont("Courier", 18, bold=True)
+        self.font_main = pygame.font.SysFont("Courier", 14)
         
         self.sparks = []
         self.slashes = []
+        
+        # Character Select navigation state
+        self.char_scroll = 0
         self.customizer_buttons = []
 
     def spawn_sparks(self, x, y, color):
@@ -380,94 +343,238 @@ class UIManager:
     def add_slash_effect(self, x, y, max_radius):
         self.slashes.append(SlashEffect(x, y, max_radius))
 
-    # --- CUSTOMIZER SCREEN ---
+    def wrap_text(self, text, max_width):
+        words = text.split(' ')
+        lines = []
+        current_line = ""
+        for word in words:
+            test_line = current_line + " " + word if current_line else word
+            if self.font_main.size(test_line)[0] <= max_width:
+                current_line = test_line
+            else:
+                lines.append(current_line)
+                current_line = word
+        if current_line:
+            lines.append(current_line)
+        return lines
+
+    # --- CHARACTER SELECT OVERLAY ---
     def draw_customizer(self, screen):
         screen.fill((15, 15, 22))
         
-        t_surf = self.font_large.render("CAVE SURVIVOR: TSUSHIMA STANCES", True, (255, 255, 255))
-        screen.blit(t_surf, (512 - t_surf.get_width()//2, 80))
+        t_surf = self.font_large.render("SELECT YOUR SURVIVOR HERO", True, (255, 255, 255))
+        screen.blit(t_surf, (512 - t_surf.get_width()//2, 40))
         
-        sub_surf = self.font_sub.render("Character Customizer & Custom Sprite Profile Generator", True, (150, 180, 200))
-        screen.blit(sub_surf, (512 - sub_surf.get_width()//2, 125))
+        sub_surf = self.font_main.render("Select a pop-culture character. Each features unique starting weapons and passives.", True, (150, 180, 200))
+        screen.blit(sub_surf, (512 - sub_surf.get_width()//2, 85))
 
-        preview_box = pygame.Rect(180, 220, 240, 280)
-        pygame.draw.rect(screen, (30, 35, 45), preview_box, 0, 12)
-        pygame.draw.rect(screen, (70, 90, 120), preview_box, 3, 12)
+        self.customizer_buttons = []
         
-        px = 300 - 42
-        py = 360 - 78
-        
-        colors = self.engine.custom_colors
-        pygame.draw.rect(screen, colors["pants"], (px + 12, py + 96, 60, 48))
-        pygame.draw.rect(screen, (30, 30, 30), (px + 6, py + 144, 24, 12))
-        pygame.draw.rect(screen, (30, 30, 30), (px + 54, py + 144, 24, 12))
-        pygame.draw.rect(screen, colors["shirt"], (px + 6, py + 48, 72, 48))
-        pygame.draw.rect(screen, colors["skin"], (px + 18, py + 6, 48, 42))
-        pygame.draw.rect(screen, colors["eyes"], (px + 42, py + 18, 12, 12))
-        pygame.draw.rect(screen, colors["hair"], (px + 12, py - 6, 60, 12))
-        pygame.draw.rect(screen, colors["hair"], (px + 48, py + 6, 12, 24))
+        # 1. Left Panel: Scrollable list container
+        list_box = pygame.Rect(64, 150, 320, 500)
+        pygame.draw.rect(screen, (22, 28, 38), list_box, 0, 8)
+        pygame.draw.rect(screen, (60, 80, 110), list_box, 2, 8)
 
-        labels = [
-            ("Hair Style/Color", "hair"),
-            ("Skin Tone/Face", "skin"),
-            ("Outfit Shirt", "shirt"),
-            ("Outfit Pants", "pants"),
-            ("Eye Color", "eyes")
+        # Scroll Up Button
+        up_rect = pygame.Rect(64, 114, 320, 30)
+        pygame.draw.rect(screen, (32, 40, 55), up_rect, 0, 4)
+        pygame.draw.rect(screen, (80, 100, 130), up_rect, 1, 4)
+        up_t = self.font_hud.render("▲ SCROLL UP", True, (255, 255, 255))
+        screen.blit(up_t, (224 - up_t.get_width()//2, 122))
+        self.customizer_buttons.append({"rect": up_rect, "action": "SCROLL_UP", "index": None})
+
+        # Scroll Down Button
+        down_rect = pygame.Rect(64, 656, 320, 30)
+        pygame.draw.rect(screen, (32, 40, 55), down_rect, 0, 4)
+        pygame.draw.rect(screen, (80, 100, 130), down_rect, 1, 4)
+        down_t = self.font_hud.render("▼ SCROLL DOWN", True, (255, 255, 255))
+        screen.blit(down_t, (224 - down_t.get_width()//2, 664))
+        self.customizer_buttons.append({"rect": down_rect, "action": "SCROLL_DOWN", "index": None})
+
+        # Draw Names Slots
+        visible_slots = 10
+        row_h = 46
+        for i in range(visible_slots):
+            idx = self.char_scroll + i
+            if idx >= len(CHARACTERS_DB):
+                break
+                
+            char = CHARACTERS_DB[idx]
+            slot_y = 160 + i * row_h
+            slot_rect = pygame.Rect(74, slot_y, 300, 40)
+            
+            selected = (self.engine.selected_character_idx == idx)
+            bg_col = (50, 75, 110) if selected else (30, 38, 48)
+            bd_col = (0, 220, 255) if selected else (60, 70, 85)
+            
+            pygame.draw.rect(screen, bg_col, slot_rect, 0, 6)
+            pygame.draw.rect(screen, bd_col, slot_rect, 1, 6)
+            
+            # Character list label
+            n_surf = self.font_hud.render(char["name"], True, (255, 255, 255))
+            screen.blit(n_surf, (90, slot_y + 6))
+            
+            o_font = pygame.font.SysFont("Courier", 9, italic=True)
+            o_surf = o_font.render(char["origin"], True, (180, 200, 220))
+            screen.blit(o_surf, (90, slot_y + 22))
+            
+            self.customizer_buttons.append({"rect": slot_rect, "action": "SELECT_INDEX", "index": idx})
+
+        # 2. Right Panel: Profile View
+        prof_box = pygame.Rect(416, 114, 544, 572)
+        pygame.draw.rect(screen, (32, 38, 48), prof_box, 0, 8)
+        pygame.draw.rect(screen, (80, 100, 130), prof_box, 3, 8)
+
+        # Retrieve active character profile details
+        sel_char = CHARACTERS_DB[self.engine.selected_character_idx]
+        
+        # Render profile text
+        name_surf = self.font_large.render(sel_char["name"], True, (255, 220, 80))
+        screen.blit(name_surf, (440, 136))
+        
+        orig_surf = pygame.font.SysFont("Courier", 14, italic=True).render(f"Origin: {sel_char['origin']}", True, (200, 220, 255))
+        screen.blit(orig_surf, (440, 172))
+
+        # Avatar Preview Box
+        avatar_box = pygame.Rect(440, 200, 96, 110)
+        pygame.draw.rect(screen, (22, 28, 38), avatar_box, 0, 6)
+        pygame.draw.rect(screen, (60, 80, 110), avatar_box, 2, 6)
+        self.draw_character_preview(screen, 452, 212, sel_char["theme"], scale=3)
+
+        # Stats meters
+        stats_y = 200
+        stats_labels = [
+            ("Max Health", sel_char["stats"]["max_health"], 200, (220, 50, 50)),
+            ("Move Speed", sel_char["stats"]["move_speed"], 2.0, (50, 200, 80)),
+            ("Armor Block", sel_char["stats"]["armor"], 10, (180, 180, 180)),
+            ("Magnet Range", sel_char["stats"]["magnet_range"], 5.0, (0, 200, 255))
         ]
         
-        self.customizer_buttons = []
-        start_y = 230
-        
-        for idx, (label, key) in enumerate(labels):
-            curr_y = start_y + idx * 55
+        for idx, (label, val, max_val, color) in enumerate(stats_labels):
+            sy = stats_y + idx * 30
+            lbl = self.font_hud.render(f"{label}:", True, (200, 200, 200))
+            screen.blit(lbl, (554, sy))
             
-            lbl_surf = self.font_sub.render(label, True, (220, 220, 220))
-            screen.blit(lbl_surf, (480, curr_y + 8))
+            # Progress bar
+            bar_pct = val / max_val
+            pygame.draw.rect(screen, (40, 45, 55), (664, sy + 4, 180, 10))
+            pygame.draw.rect(screen, color, (664, sy + 4, int(180 * bar_pct), 10))
             
-            l_rect = pygame.Rect(700, curr_y + 4, 35, 30)
-            pygame.draw.rect(screen, (40, 50, 65), l_rect, 0, 4)
-            pygame.draw.rect(screen, (80, 100, 130), l_rect, 1, 4)
-            arrow_l = pygame.font.SysFont("Courier", 18, bold=True).render("<", True, (255, 255, 255))
-            screen.blit(arrow_l, (712, curr_y + 8))
-            
-            box_rect = pygame.Rect(750, curr_y + 4, 50, 30)
-            pygame.draw.rect(screen, colors[key], box_rect, 0, 4)
-            pygame.draw.rect(screen, (255, 255, 255), box_rect, 2, 4)
-            
-            r_rect = pygame.Rect(815, curr_y + 4, 35, 30)
-            pygame.draw.rect(screen, (40, 50, 65), r_rect, 0, 4)
-            pygame.draw.rect(screen, (80, 100, 130), r_rect, 1, 4)
-            arrow_r = pygame.font.SysFont("Courier", 18, bold=True).render(">", True, (255, 255, 255))
-            screen.blit(arrow_r, (827, curr_y + 8))
-            
-            self.customizer_buttons.append({"rect": l_rect, "action": "PREV", "key": key})
-            self.customizer_buttons.append({"rect": r_rect, "action": "NEXT", "key": key})
+            val_txt = self.font_hud.render(str(val), True, (255, 255, 255))
+            screen.blit(val_txt, (856, sy))
 
-        start_btn = pygame.Rect(384, 590, 256, 50)
+        # Divider line
+        pygame.draw.line(screen, (50, 65, 85), (440, 325), (936, 325), 2)
+
+        # Weapon slot details
+        w_title = self.font_sub.render(f"Weapon: {sel_char['starting_weapon']}", True, (255, 255, 255))
+        screen.blit(w_title, (440, 340))
+
+        # Ability slot details
+        ab_title = self.font_sub.render(f"Ability: {sel_char['unique_ability']['name']}", True, (0, 220, 255))
+        screen.blit(ab_title, (440, 375))
+        
+        ab_lines = self.wrap_text(sel_char["unique_ability"]["description"], 490)
+        for idx, l in enumerate(ab_lines):
+            l_surf = self.font_main.render(l, True, (200, 210, 220))
+            screen.blit(l_surf, (440, 400 + idx * 18))
+
+        # Crafting bonus details
+        cr_y = 400 + len(ab_lines) * 18 + 15
+        cr_title = self.font_sub.render("Colony Crafting Bonus:", True, (100, 255, 130))
+        screen.blit(cr_title, (440, cr_y))
+        
+        cr_lines = self.wrap_text(sel_char["crafting_bonus"], 490)
+        for idx, l in enumerate(cr_lines):
+            l_surf = self.font_main.render(l, True, (200, 210, 220))
+            screen.blit(l_surf, (440, cr_y + 25 + idx * 18))
+
+        # Play Select Button at bottom
+        start_btn = pygame.Rect(540, 610, 300, 48)
         pygame.draw.rect(screen, (30, 80, 50), start_btn, 0, 8)
         pygame.draw.rect(screen, (100, 220, 130), start_btn, 3, 8)
-        btn_txt = self.font_hud.render("START GAME [ENTER]", True, (255, 255, 255))
-        screen.blit(btn_txt, (512 - btn_txt.get_width()//2, 606))
-        self.customizer_buttons.append({"rect": start_btn, "action": "START", "key": None})
+        
+        btn_txt = self.font_hud.render("SELECT SURVIVOR [ENTER]", True, (255, 255, 255))
+        screen.blit(btn_txt, (690 - btn_txt.get_width()//2, 626))
+        self.customizer_buttons.append({"rect": start_btn, "action": "START", "index": None})
+
+    def draw_character_preview(self, screen, x, y, theme, scale):
+        c_pants = theme["pants"]
+        c_shirt = theme["shirt"]
+        c_skin = theme["skin"]
+        c_eyes = theme["eyes"]
+        c_hair = theme["hair"]
+
+        # Scaled drawing dimensions
+        # Pants
+        pygame.draw.rect(screen, c_pants, (x + 2*scale, y + 16*scale, 10*scale, 8*scale))
+        pygame.draw.rect(screen, (30, 30, 30), (x + 1*scale, y + 24*scale, 4*scale, 2*scale))
+        pygame.draw.rect(screen, (30, 30, 30), (x + 9*scale, y + 24*scale, 4*scale, 2*scale))
+        
+        # Cape check
+        if theme.get("has_cape"):
+            pygame.draw.rect(screen, theme.get("cape_color", (200, 30, 30)), (x - 2*scale, y + 8*scale, 4*scale, 16*scale))
+            pygame.draw.rect(screen, theme.get("cape_color", (200, 30, 30)), (x + 12*scale, y + 8*scale, 4*scale, 16*scale))
+            
+        # Torso
+        pygame.draw.rect(screen, c_shirt, (x + 1*scale, y + 8*scale, 12*scale, 8*scale))
+        
+        # Head
+        pygame.draw.rect(screen, c_skin, (x + 3*scale, y + 1*scale, 8*scale, 7*scale))
+        
+        # Goatee check
+        if theme.get("has_goatee"):
+            pygame.draw.rect(screen, (60, 45, 30), (x + 4*scale, y + 6*scale, 6*scale, 2*scale))
+            
+        # Eyes
+        if theme.get("has_blindfold"):
+            pygame.draw.rect(screen, (10, 10, 10), (x + 3*scale, y + 3*scale, 8*scale, 2*scale))
+        else:
+            pygame.draw.rect(screen, c_eyes, (x + 4*scale, y + 3*scale, 2*scale, 2*scale))
+            pygame.draw.rect(screen, c_eyes, (x + 7*scale, y + 3*scale, 2*scale, 2*scale))
+            
+        # Hair (unless bald)
+        if not theme.get("is_bald"):
+            pygame.draw.rect(screen, c_hair, (x + 2*scale, y, 10*scale, 2*scale))
+            pygame.draw.rect(screen, c_hair, (x + 10*scale, y + 1*scale, 2*scale, 4*scale))
+            if theme.get("has_ponytail"):
+                pygame.draw.rect(screen, c_hair, (x + 11*scale, y + 2*scale, 3*scale, 8*scale))
+            if theme.get("has_braids"):
+                pygame.draw.rect(screen, c_hair, (x + 1*scale, y + 4*scale, 2*scale, 10*scale))
+                pygame.draw.rect(screen, c_hair, (x + 11*scale, y + 4*scale, 2*scale, 10*scale))
+                
+        # Hats overlay
+        if theme.get("has_straw_hat"):
+            pygame.draw.polygon(screen, (220, 200, 120), [
+                (x - 2*scale, y + 2*scale),
+                (x + 7*scale, y - 4*scale),
+                (x + 16*scale, y + 2*scale)
+            ])
+        elif theme.get("has_fedora"):
+            pygame.draw.rect(screen, (100, 70, 45), (x - scale, y + scale, 16*scale, 2*scale))
+            pygame.draw.rect(screen, (80, 50, 30), (x + 2*scale, y - 2*scale, 10*scale, 3*scale))
+        elif theme.get("has_green_cap"):
+            pygame.draw.polygon(screen, (50, 140, 50), [
+                (x + 2*scale, y + scale),
+                (x + 11*scale, y + scale),
+                (x + 6*scale, y - 3*scale)
+            ])
+            pygame.draw.rect(screen, (50, 140, 50), (x + scale, y + scale, 3*scale, 6*scale))
 
     def handle_customizer_click(self, mouse_pos):
         for btn in self.customizer_buttons:
             if btn["rect"].collidepoint(mouse_pos):
                 action = btn["action"]
-                key = btn["key"]
+                index = btn["index"]
                 
-                self.engine.sound_manager.play("click")
                 if action == "START":
                     self.engine.start_game()
-                else:
-                    options = self.engine.custom_options[key]
-                    idx = self.engine.custom_indices[key]
-                    if action == "PREV":
-                        idx = (idx - 1) % len(options)
-                    elif action == "NEXT":
-                        idx = (idx + 1) % len(options)
-                    self.engine.custom_indices[key] = idx
-                    self.engine.custom_colors[key] = options[idx]
+                elif action == "SELECT_INDEX":
+                    self.engine.selected_character_idx = index
+                elif action == "SCROLL_UP":
+                    self.char_scroll = max(0, self.char_scroll - 1)
+                elif action == "SCROLL_DOWN":
+                    self.char_scroll = min(len(CHARACTERS_DB) - 10, self.char_scroll + 1)
                 break
 
     # --- HUD & PLAYING DRAW ---
@@ -475,7 +582,6 @@ class UIManager:
         p = self.engine.player
         zoom = self.engine.zoom
         
-        # Camera shake calculations
         cam_shake_x = 0
         cam_shake_y = 0
         if self.engine.combat_manager.screen_shake > 0:
@@ -486,7 +592,6 @@ class UIManager:
         cx = p.camera_x + cam_shake_x
         cy = p.camera_y + cam_shake_y
         
-        # Render particles/sparks scaled by zoom
         for slash in self.slashes[:]:
             slash.update(self.engine.clock.get_time() / 1000.0)
             slash.draw(screen, cx, cy, zoom)
@@ -499,7 +604,6 @@ class UIManager:
             if spark.life <= 0:
                 self.sparks.remove(spark)
 
-        # Screen flash
         if self.engine.combat_manager.parry_flash_timer > 0.0:
             flash_surf = pygame.Surface((1024, 768), pygame.SRCALPHA)
             flash_surf.fill((255, 255, 255, 120))
@@ -509,14 +613,12 @@ class UIManager:
         pygame.draw.rect(screen, (20, 20, 30), (0, 0, 1024, 45))
         pygame.draw.line(screen, (50, 50, 70), (0, 45), (1024, 45), 2)
 
-        # MM:SS Timer
         mins = int(self.engine.survival_time // 60)
         secs = int(self.engine.survival_time % 60)
         time_txt = f"SURVIVED: {mins:02d}:{secs:02d}"
         t_surf = self.font_hud.render(time_txt, True, (255, 255, 255))
         screen.blit(t_surf, (512 - t_surf.get_width()//2, 14))
 
-        # XP Progress Bar
         xp_pct = p.xp / p.xp_to_next
         pygame.draw.rect(screen, (40, 45, 60), (250, 5, 524, 6))
         pygame.draw.rect(screen, (0, 220, 255), (250, 5, int(524 * xp_pct), 6))
@@ -524,11 +626,11 @@ class UIManager:
         lvl_surf = self.font_hud.render(f"LVL {p.level}", True, (0, 220, 255))
         screen.blit(lvl_surf, (200, 2))
 
-        # Keybind Guide
-        guide_surf = self.font_hud.render("[O] Settings [T] Base Camp [F] Tool [1-5] Slot", True, (160, 180, 200))
-        screen.blit(guide_surf, (680, 14))
+        # Shift guide display
+        guide_surf = self.font_hud.render("[O] Settings [T] Base Camp [F] Use [Shift] Block", True, (160, 180, 200))
+        screen.blit(guide_surf, (635, 14))
 
-        # Resources Display
+        # Resource Display
         res_text = f"Gold: {self.engine.gold}  Iron: {self.engine.iron}  Researches: {self.engine.scholar_pts}"
         res_surf = self.font_hud.render(res_text, True, (255, 220, 100))
         screen.blit(res_surf, (15, 14))
@@ -554,8 +656,7 @@ class UIManager:
         st_surf = self.font_large.render(s_title, True, s_col)
         screen.blit(st_surf, (1004 - st_surf.get_width(), 710))
 
-        # --- DRAW BOTTOM CENTER TOOLBAR ---
-        # 5 slots centered. Width of each slot = 42. Border gap = 6. Total = 5*42 + 4*6 = 210 + 24 = 234.
+        # Bottom center toolbar
         toolbar_start_x = 512 - 117
         toolbar_y = 705
         
@@ -564,11 +665,17 @@ class UIManager:
 
         slot_names = ["Pick", "Katana", "Block", "Water", "Wind"]
         
+        # Check if custom starting weapon name exists
+        custom_weapon_name = getattr(p, "starting_weapon", "Katana")
+        # Abbreviate to fit toolbar box
+        if len(custom_weapon_name) > 8:
+            custom_weapon_name = custom_weapon_name[:6] + ".."
+        slot_names[1] = custom_weapon_name
+
         for i in range(5):
             slot_x = toolbar_start_x + i * 48
             slot_rect = pygame.Rect(slot_x, toolbar_y, 42, 42)
             
-            # Highlight if selected
             bg_col = (45, 55, 70) if p.active_slot == i else (25, 30, 40)
             pygame.draw.rect(screen, bg_col, slot_rect, 0, 4)
             
@@ -576,18 +683,15 @@ class UIManager:
             bd_w = 3 if p.active_slot == i else 1
             pygame.draw.rect(screen, bd_col, slot_rect, bd_w, 4)
             
-            # Draw Slot Label (compact)
             t_col = (255, 255, 255) if p.active_slot == i else (160, 170, 185)
             s_font = pygame.font.SysFont("Courier", 9, bold=True)
             lbl_surf = s_font.render(slot_names[i], True, t_col)
             screen.blit(lbl_surf, (slot_x + 21 - lbl_surf.get_width()//2, toolbar_y + 15))
             
-            # Key Indicator number (1-5)
             k_surf = s_font.render(str(i+1), True, (120, 140, 160))
             screen.blit(k_surf, (slot_x + 4, toolbar_y + 4))
 
-            # Display stack of materials for dirt slot
-            if slot_names[i] == "Block":
+            if i == 2: # Block stack display
                 stk_surf = pygame.font.SysFont("Courier", 8, bold=True).render(f"x{self.engine.iron//2}", True, (200, 200, 200))
                 screen.blit(stk_surf, (slot_x + 38 - stk_surf.get_width(), toolbar_y + 30))
 
@@ -650,12 +754,10 @@ class UIManager:
     def handle_levelup_click(self, mouse_pos):
         for btn in self.levelup_buttons:
             if btn["rect"].collidepoint(mouse_pos):
-                self.engine.sound_manager.play("click")
                 self.engine.apply_upgrade(btn["id"])
                 break
 
     def draw_excel(self, screen):
-        # Cleared/Dormant method
         pass
 
     def draw_settings(self, screen):
@@ -698,5 +800,4 @@ class UIManager:
 
     def handle_gameover_click(self, mouse_pos):
         if hasattr(self, "gameover_btn") and self.gameover_btn.collidepoint(mouse_pos):
-            self.engine.sound_manager.play("click")
             self.engine.state = "CUSTOMIZER"

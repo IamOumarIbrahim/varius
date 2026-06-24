@@ -81,11 +81,31 @@ class Player:
             if self.swing_timer <= 0:
                 self.is_swinging = False
 
+        # Character unique passive checks
+        char_name = getattr(self, "char_name", "")
+        if char_name == "Deadpool":
+            self.health = min(self.health + (self.stats["max_health"] * 0.03) * dt, self.stats["max_health"])
+        elif char_name == "Wednesday Addams":
+            if not hasattr(self, "shockwave_timer"):
+                self.shockwave_timer = 0.0
+            self.shockwave_timer += dt
+            if self.shockwave_timer >= 8.0:
+                self.shockwave_timer = 0.0
+                p_x = self.x + self.width/2
+                p_y = self.y + self.height/2
+                for mob in self.engine.mob_manager.mobs:
+                    dx = mob.x + mob.width/2 - p_x
+                    dy = mob.y + mob.height/2 - p_y
+                    dist = math.sqrt(dx**2 + dy**2)
+                    if dist < 150:
+                        mob.speed = mob.speed * 0.65
+                        mob.take_damage(12, 10)
+
         # Handle keyboard movement inputs
         keys = pygame.key.get_pressed()
-        speed = 180
+        speed = 180 * self.stats.get("move_speed_mult", 1.0)
         if self.stance == "WIND":
-            speed = 220
+            speed = 220 * self.stats.get("move_speed_mult", 1.0)
             
         self.vx = 0
         if keys[pygame.K_a] or keys[pygame.K_LEFT]:
@@ -95,7 +115,7 @@ class Player:
             self.vx = speed
             self.direction = 1
             
-        if (keys[pygame.K_w] or keys[pygame.K_UP]) and self.on_ground:
+        if (keys[pygame.K_SPACE] or keys[pygame.K_w] or keys[pygame.K_UP]) and self.on_ground:
             self.vy = -300
             self.on_ground = False
 
@@ -269,31 +289,73 @@ class Player:
         c_hair = (255, 100, 100) if self.flash_timer > 0 else self.colors["hair"]
         c_eyes = (255, 0, 0) if self.flash_timer > 0 else self.colors["eyes"]
         
-        # 1. Legs/Pants
+        # 1. Legs/Pants (lower half)
         pygame.draw.rect(screen, c_pants, (draw_x + int(2*zoom), draw_y + int(16*zoom), int(10*zoom), int(8*zoom)))
         
         # Shoes
         pygame.draw.rect(screen, (30, 30, 30), (draw_x + int((1 if self.direction == -1 else 2)*zoom), draw_y + int(24*zoom), int(4*zoom), int(2*zoom)))
         pygame.draw.rect(screen, (30, 30, 30), (draw_x + int((9 if self.direction == -1 else 8)*zoom), draw_y + int(24*zoom), int(4*zoom), int(2*zoom)))
         
+        # Cape check
+        if self.colors.get("has_cape"):
+            cape_col = self.colors.get("cape_color", (200, 30, 30))
+            if self.direction == 1:
+                # Behind back on the left
+                pygame.draw.rect(screen, cape_col, (draw_x - int(2*zoom), draw_y + int(8*zoom), int(4*zoom), int(16*zoom)))
+            else:
+                # Behind back on the right
+                pygame.draw.rect(screen, cape_col, (draw_x + w, draw_y + int(8*zoom), int(4*zoom), int(16*zoom)))
+
         # 2. Torso/Shirt
         pygame.draw.rect(screen, c_shirt, (draw_x + int(1*zoom), draw_y + int(8*zoom), int(12*zoom), int(8*zoom)))
         
         # 3. Head
         pygame.draw.rect(screen, c_skin, (draw_x + int(3*zoom), draw_y + int(1*zoom), int(8*zoom), int(7*zoom)))
         
+        # Goatee check
+        if self.colors.get("has_goatee"):
+            pygame.draw.rect(screen, (60, 45, 30), (draw_x + int(4*zoom), draw_y + int(6*zoom), int(6*zoom), int(2*zoom)))
+            
         # 4. Eyes (based on direction)
         eye_offset = int((4 if self.direction == 1 else 2) * zoom)
-        pygame.draw.rect(screen, c_eyes, (draw_x + eye_offset, draw_y + int(3*zoom), int(2*zoom), int(2*zoom)))
-        pygame.draw.rect(screen, c_eyes, (draw_x + eye_offset + int(3*zoom), draw_y + int(3*zoom), int(2*zoom), int(2*zoom)))
+        if self.colors.get("has_blindfold"):
+            pygame.draw.rect(screen, (10, 10, 10), (draw_x + int(3*zoom), draw_y + int(3*zoom), int(8*zoom), int(2*zoom)))
+        else:
+            pygame.draw.rect(screen, c_eyes, (draw_x + eye_offset, draw_y + int(3*zoom), int(2*zoom), int(2*zoom)))
+            pygame.draw.rect(screen, c_eyes, (draw_x + eye_offset + int(3*zoom), draw_y + int(3*zoom), int(2*zoom), int(2*zoom)))
         
         # 5. Hair
-        pygame.draw.rect(screen, c_hair, (draw_x + int(2*zoom), draw_y, int(10*zoom), int(2*zoom)))
-        hair_s_offset = int((2 if self.direction == -1 else 10) * zoom)
-        pygame.draw.rect(screen, c_hair, (draw_x + hair_s_offset, draw_y + int(1*zoom), int(2*zoom), int(4*zoom)))
-        
-        # 6. Draw Katana (Ghost of Tsushima sword layout scaled)
-        sword_color = (200, 200, 200)
+        if not self.colors.get("is_bald"):
+            pygame.draw.rect(screen, c_hair, (draw_x + int(2*zoom), draw_y, int(10*zoom), int(2*zoom)))
+            hair_s_offset = int((2 if self.direction == -1 else 10) * zoom)
+            pygame.draw.rect(screen, c_hair, (draw_x + hair_s_offset, draw_y + int(1*zoom), int(2*zoom), int(4*zoom)))
+            if self.colors.get("has_ponytail"):
+                p_offset = int((11 if self.direction == 1 else -1) * zoom)
+                pygame.draw.rect(screen, c_hair, (draw_x + p_offset, draw_y + int(2*zoom), int(3*zoom), int(8*zoom)))
+            if self.colors.get("has_braids"):
+                pygame.draw.rect(screen, c_hair, (draw_x + int(1*zoom), draw_y + int(4*zoom), int(2*zoom), int(10*zoom)))
+                pygame.draw.rect(screen, c_hair, (draw_x + int(11*zoom), draw_y + int(4*zoom), int(2*zoom), int(10*zoom)))
+                
+        # Hats overlay
+        if self.colors.get("has_straw_hat"):
+            pygame.draw.polygon(screen, (220, 200, 120), [
+                (draw_x - int(2*zoom), draw_y + int(2*zoom)),
+                (draw_x + int(7*zoom), draw_y - int(4*zoom)),
+                (draw_x + int(16*zoom), draw_y + int(2*zoom))
+            ])
+        elif self.colors.get("has_fedora"):
+            pygame.draw.rect(screen, (100, 70, 45), (draw_x - int(zoom), draw_y + int(zoom), int(16*zoom), int(2*zoom)))
+            pygame.draw.rect(screen, (80, 50, 30), (draw_x + int(2*zoom), draw_y - int(2*zoom), int(10*zoom), int(3*zoom)))
+        elif self.colors.get("has_green_cap"):
+            pygame.draw.polygon(screen, (50, 140, 50), [
+                (draw_x + int(2*zoom), draw_y + int(zoom)),
+                (draw_x + int(11*zoom), draw_y + int(zoom)),
+                (draw_x + int(6*zoom), draw_y - int(3*zoom))
+            ])
+            pygame.draw.rect(screen, (50, 140, 50), (draw_x + int(zoom), draw_y + int(zoom), int(3*zoom), int(6*zoom)))
+
+        # 6. Draw Weapon (Katana or Lightsaber)
+        sword_color = self.colors.get("saber_color", (200, 200, 200)) if self.colors.get("has_lightsaber") else (200, 200, 200)
         hilt_color = (139, 69, 19)
         
         bx = draw_x + int((12 if self.direction == 1 else -4)*zoom)

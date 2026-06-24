@@ -8,6 +8,7 @@ from mobs import MobManager
 from combat import CombatManager
 from ui import UIManager
 from sounds import SoundManager
+from characters import CHARACTERS_DB
 
 class GameEngine:
     def __init__(self, screen):
@@ -39,6 +40,7 @@ class GameEngine:
             "eyes": [(0, 150, 50), (30, 80, 200), (100, 60, 20), (50, 50, 50), (180, 0, 0)]
         }
         self.custom_indices = {"hair": 0, "skin": 0, "shirt": 0, "pants": 0, "eyes": 0}
+        self.selected_character_idx = 0
         
         # Town and Resource Simulation (Colony stats)
         self.gold = 100
@@ -63,13 +65,25 @@ class GameEngine:
 
     def start_game(self):
         # Create systems (passing self as engine)
+        char_data = CHARACTERS_DB[self.selected_character_idx]
         self.world = World(width=160, height=80) 
         self.player = Player(
             x=80 * 16, 
             y=20 * 16, 
-            colors=self.custom_colors,
+            colors=char_data["theme"],
             engine=self
         )
+        # Apply selected character stats
+        self.player.char_name = char_data["name"]
+        self.player.stats["max_health"] = char_data["stats"]["max_health"]
+        self.player.health = char_data["stats"]["max_health"]
+        self.player.stats["armor"] = char_data["stats"]["armor"]
+        self.player.stats["move_speed_mult"] = char_data["stats"]["move_speed"]
+        self.player.stats["magnet_range"] = char_data["stats"]["magnet_range"]
+        self.player.starting_weapon = char_data["starting_weapon"]
+        self.player.unique_ability = char_data["unique_ability"]
+        self.player.crafting_bonus = char_data["crafting_bonus"]
+        
         self.combat_manager = CombatManager(self)
         self.mob_manager = MobManager(self)
         self.ui_manager = UIManager(self)
@@ -190,7 +204,7 @@ class GameEngine:
             elif event.key == pygame.K_5:
                 self.player.active_slot = 4
                 self.player.change_stance("WIND")
-            elif event.key == pygame.K_SPACE:
+            elif event.key == pygame.K_LSHIFT or event.key == pygame.K_RSHIFT:
                 self.combat_manager.trigger_block_parry()
                 
         elif event.type == pygame.USEREVENT:
@@ -243,7 +257,12 @@ class GameEngine:
                 "level": self.player.level,
                 "xp": self.player.xp,
                 "xp_to_next": self.player.xp_to_next,
-                "stats": self.player.stats
+                "stats": self.player.stats,
+                "char_name": getattr(self.player, "char_name", "Hero"),
+                "colors": self.player.colors,
+                "starting_weapon": getattr(self.player, "starting_weapon", "Katana"),
+                "unique_ability": getattr(self.player, "unique_ability", {"name": "", "description": ""}),
+                "crafting_bonus": getattr(self.player, "crafting_bonus", "")
             },
             "world_grid": self.world.grid,
             "mobs": [
@@ -286,7 +305,7 @@ class GameEngine:
         self.player = Player(
             x=p_data["x"], 
             y=p_data["y"], 
-            colors=self.custom_colors,
+            colors=p_data.get("colors", self.custom_colors),
             engine=self
         )
         self.player.health = p_data["health"]
@@ -297,6 +316,10 @@ class GameEngine:
         self.player.xp = p_data["xp"]
         self.player.xp_to_next = p_data["xp_to_next"]
         self.player.stats = p_data["stats"]
+        self.player.char_name = p_data.get("char_name", "Hero")
+        self.player.starting_weapon = p_data.get("starting_weapon", "Katana")
+        self.player.unique_ability = p_data.get("unique_ability", {"name": "", "description": ""})
+        self.player.crafting_bonus = p_data.get("crafting_bonus", "")
         
         # Re-build managers
         self.combat_manager = CombatManager(self)
