@@ -65,7 +65,7 @@ class SettingsPanel:
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_o or event.key == pygame.K_ESCAPE:
-                self.engine.state = "PLAYING"
+                self.engine.state = getattr(self.engine, "settings_prev_state", "PLAYING")
         elif event.type == pygame.MOUSEBUTTONDOWN:
             mouse_pos = event.pos
             self.handle_click(mouse_pos)
@@ -332,9 +332,15 @@ class UIManager:
         self.sparks = []
         self.slashes = []
         
-        # Character Select navigation state
-        self.char_scroll = 0
+        # Grid Select state
+        self.char_grid_scroll_y = 0
         self.customizer_buttons = []
+        
+        # Main Menu buttons
+        self.main_menu_buttons = []
+        
+        # 4x sprite cache
+        self.sprite_cache = {}
 
     def spawn_sparks(self, x, y, color):
         for _ in range(random.randint(6, 12)):
@@ -358,88 +364,463 @@ class UIManager:
             lines.append(current_line)
         return lines
 
-    # --- CHARACTER SELECT OVERLAY ---
+    # --- 4X DETAILED PROCEDURAL SPRITE DRAWER ---
+    def make_detailed_sprite(self, theme, is_swinging=False, active_tool="PICKAXE", stance="STONE", direction=1, flash_red=False):
+        # Base canvas of 56x104 (4 times details than original 14x26)
+        surf = pygame.Surface((56, 104), pygame.SRCALPHA)
+        
+        c_pants = theme["pants"]
+        c_shirt = theme["shirt"]
+        c_skin = theme["skin"]
+        c_eyes = theme["eyes"]
+        c_hair = theme["hair"]
+        
+        if flash_red:
+            c_pants = (200, 50, 50)
+            c_shirt = (255, 100, 100)
+            c_skin = (255, 100, 100)
+            c_eyes = (255, 0, 0)
+            c_hair = (255, 100, 100)
+            
+        has_ponytail = theme.get("has_ponytail", False)
+        has_braids = theme.get("has_braids", False)
+        has_cape = theme.get("has_cape", False)
+        cape_color = theme.get("cape_color", (200, 30, 30))
+        if flash_red:
+            cape_color = (200, 50, 50)
+            
+        has_goatee = theme.get("has_goatee", False)
+        has_blindfold = theme.get("has_blindfold", False)
+        has_straw_hat = theme.get("has_straw_hat", False)
+        has_fedora = theme.get("has_fedora", False)
+        has_green_cap = theme.get("has_green_cap", False)
+        is_bald = theme.get("is_bald", False)
+        has_scar = theme.get("has_scar", False)
+        
+        # 1. Draw Cape (flowing backdrop)
+        if has_cape:
+            for cy in range(32, 92):
+                w_at_y = int(8 + (cy - 32) * 0.25)
+                cx_center = 28 - direction * 6
+                pygame.draw.rect(surf, cape_color, (cx_center - w_at_y//2, cy, w_at_y, 1))
+                shadow_col = (max(0, cape_color[0]-40), max(0, cape_color[1]-40), max(0, cape_color[2]-40))
+                surf.set_at((cx_center - w_at_y//2, cy), shadow_col)
+                surf.set_at((cx_center + w_at_y//2 - 1, cy), shadow_col)
+                if cy % 8 < 3:
+                    surf.set_at((cx_center, cy), shadow_col)
+                    
+        # 2. Draw Legs and Shoes
+        shadow_pants = (max(0, c_pants[0]-35), max(0, c_pants[1]-35), max(0, c_pants[2]-35))
+        highlight_pants = (min(255, c_pants[0]+25), min(255, c_pants[1]+25), min(255, c_pants[2]+25))
+        
+        # Left Leg
+        pygame.draw.rect(surf, c_pants, (16, 64, 10, 28))
+        pygame.draw.rect(surf, shadow_pants, (16, 64, 3, 28))
+        pygame.draw.rect(surf, highlight_pants, (23, 64, 3, 28))
+        
+        # Right Leg
+        pygame.draw.rect(surf, c_pants, (30, 64, 10, 28))
+        pygame.draw.rect(surf, shadow_pants, (30, 64, 3, 28))
+        pygame.draw.rect(surf, highlight_pants, (37, 64, 3, 28))
+        
+        # Shoes
+        c_sole = (30, 30, 30)
+        c_shoe = (50, 50, 50)
+        pygame.draw.rect(surf, c_shoe, (14, 92, 12, 6))
+        pygame.draw.rect(surf, c_sole, (14, 98, 12, 2))
+        pygame.draw.rect(surf, c_shoe, (30, 92, 12, 6))
+        pygame.draw.rect(surf, c_sole, (30, 98, 12, 2))
+        
+        # 3. Draw Torso (Shirt)
+        shadow_shirt = (max(0, c_shirt[0]-35), max(0, c_shirt[1]-35), max(0, c_shirt[2]-35))
+        highlight_shirt = (min(255, c_shirt[0]+25), min(255, c_shirt[1]+25), min(255, c_shirt[2]+25))
+        pygame.draw.rect(surf, c_shirt, (12, 32, 32, 32))
+        pygame.draw.rect(surf, shadow_shirt, (12, 32, 6, 32))
+        pygame.draw.rect(surf, highlight_shirt, (38, 32, 6, 32))
+        
+        # Collar neck shadow
+        pygame.draw.rect(surf, (max(0, c_skin[0]-40), max(0, c_skin[1]-40), max(0, c_skin[2]-40)), (22, 32, 12, 3))
+        
+        # Belt
+        pygame.draw.rect(surf, (40, 30, 20), (12, 60, 32, 4))
+        pygame.draw.rect(surf, (240, 200, 50), (25, 60, 6, 4))
+        
+        # 4. Arms
+        if is_swinging:
+            if direction == 1:
+                pygame.draw.rect(surf, c_shirt, (6, 32, 6, 16))
+                pygame.draw.rect(surf, c_skin, (6, 48, 6, 6))
+                
+                pygame.draw.rect(surf, c_shirt, (44, 32, 12, 8))
+                pygame.draw.rect(surf, c_skin, (56, 32, 6, 6))
+            else:
+                pygame.draw.rect(surf, c_shirt, (44, 32, 6, 16))
+                pygame.draw.rect(surf, c_skin, (44, 48, 6, 6))
+                
+                pygame.draw.rect(surf, c_shirt, (0, 32, 12, 8))
+                pygame.draw.rect(surf, c_skin, (0, 32, 6, 6))
+        else:
+            # Idle arms
+            pygame.draw.rect(surf, c_shirt, (6, 32, 6, 22))
+            pygame.draw.rect(surf, c_skin, (6, 54, 6, 6))
+            pygame.draw.rect(surf, shadow_shirt, (6, 32, 2, 22))
+            
+            pygame.draw.rect(surf, c_shirt, (44, 32, 6, 22))
+            pygame.draw.rect(surf, c_skin, (44, 54, 6, 6))
+            pygame.draw.rect(surf, highlight_shirt, (48, 32, 2, 22))
+            
+        # 5. Head
+        shadow_skin = (max(0, c_skin[0]-30), max(0, c_skin[1]-30), max(0, c_skin[2]-30))
+        highlight_skin = (min(255, c_skin[0]+20), min(255, c_skin[1]+20), min(255, c_skin[2]+20))
+        pygame.draw.rect(surf, c_skin, (16, 8, 24, 24))
+        pygame.draw.rect(surf, shadow_skin, (16, 8, 4, 24))
+        pygame.draw.rect(surf, shadow_skin, (16, 28, 24, 4))
+        pygame.draw.rect(surf, highlight_skin, (36, 8, 4, 20))
+        
+        # Rosy cheeks
+        surf.set_at((20, 24), (250, 150, 150))
+        surf.set_at((21, 24), (250, 150, 150))
+        surf.set_at((34, 24), (250, 150, 150))
+        surf.set_at((35, 24), (250, 150, 150))
+        
+        if has_goatee:
+            pygame.draw.rect(surf, (60, 45, 30), (22, 26, 12, 6))
+            pygame.draw.rect(surf, (40, 30, 20), (25, 29, 6, 3))
+            
+        # 6. Detailed Eyes
+        eye_shift = direction * 2
+        if has_blindfold:
+            pygame.draw.rect(surf, (15, 15, 15), (14, 16, 28, 5))
+            pygame.draw.rect(surf, (50, 50, 50), (14, 16, 28, 1))
+        else:
+            # Left Eye
+            pygame.draw.rect(surf, (255, 255, 255), (18 + eye_shift, 16, 4, 4))
+            pygame.draw.rect(surf, c_eyes, (19 + eye_shift, 16, 2, 4))
+            surf.set_at((19 + eye_shift, 17), (20, 20, 20))
+            surf.set_at((18 + eye_shift, 16), (255, 255, 255))
+            
+            # Right Eye
+            pygame.draw.rect(surf, (255, 255, 255), (30 + eye_shift, 16, 4, 4))
+            pygame.draw.rect(surf, c_eyes, (31 + eye_shift, 16, 2, 4))
+            surf.set_at((31 + eye_shift, 17), (20, 20, 20))
+            surf.set_at((30 + eye_shift, 16), (255, 255, 255))
+            
+        # Scar
+        if has_scar:
+            surf.set_at((31, 11), (220, 30, 30))
+            surf.set_at((32, 12), (220, 30, 30))
+            surf.set_at((31, 13), (220, 30, 30))
+            
+        # Mouth
+        pygame.draw.line(surf, (120, 60, 50), (25 + eye_shift, 26), (29 + eye_shift, 26), 1)
+        
+        # 7. Hair (layered strands & highlights)
+        if not is_bald:
+            shadow_hair = (max(0, c_hair[0]-35), max(0, c_hair[1]-35), max(0, c_hair[2]-35))
+            highlight_hair = (min(255, c_hair[0]+30), min(255, c_hair[1]+30), min(255, c_hair[2]+30))
+            pygame.draw.rect(surf, c_hair, (14, 4, 28, 8))
+            pygame.draw.rect(surf, shadow_hair, (14, 4, 4, 8))
+            pygame.draw.rect(surf, highlight_hair, (34, 4, 8, 4))
+            
+            if direction == 1:
+                pygame.draw.rect(surf, c_hair, (14, 8, 4, 10))
+                pygame.draw.rect(surf, c_hair, (38, 8, 4, 10))
+                pygame.draw.rect(surf, c_hair, (18, 8, 8, 4))
+            else:
+                pygame.draw.rect(surf, c_hair, (14, 8, 4, 10))
+                pygame.draw.rect(surf, c_hair, (38, 8, 4, 10))
+                pygame.draw.rect(surf, c_hair, (30, 8, 8, 4))
+                
+            if has_ponytail:
+                if direction == 1:
+                    pygame.draw.rect(surf, c_hair, (8, 8, 8, 20))
+                    pygame.draw.rect(surf, shadow_hair, (8, 8, 3, 20))
+                else:
+                    pygame.draw.rect(surf, c_hair, (40, 8, 8, 20))
+                    pygame.draw.rect(surf, shadow_hair, (40, 8, 3, 20))
+                    
+            if has_braids:
+                pygame.draw.rect(surf, c_hair, (12, 12, 4, 24))
+                pygame.draw.rect(surf, highlight_hair, (12, 12, 2, 24))
+                pygame.draw.rect(surf, c_hair, (40, 12, 4, 24))
+                pygame.draw.rect(surf, highlight_hair, (42, 12, 2, 24))
+                
+        # 8. Hats
+        if has_straw_hat:
+            pygame.draw.rect(surf, (220, 200, 110), (8, 4, 40, 4))
+            pygame.draw.rect(surf, (200, 30, 40), (14, 2, 28, 2))
+            pygame.draw.rect(surf, (220, 200, 110), (18, 0, 20, 2))
+        elif has_fedora:
+            pygame.draw.rect(surf, (100, 70, 45), (8, 6, 40, 3))
+            pygame.draw.rect(surf, (20, 20, 20), (14, 3, 28, 3))
+            pygame.draw.rect(surf, (80, 50, 30), (16, 0, 24, 3))
+        elif has_green_cap:
+            pygame.draw.rect(surf, (50, 140, 50), (16, 2, 24, 6))
+            if direction == 1:
+                pygame.draw.rect(surf, (40, 120, 40), (32, 6, 12, 2))
+            else:
+                pygame.draw.rect(surf, (40, 120, 40), (12, 6, 12, 2))
+                
+        # 9. Outline Silhouette blit
+        outline_color = (12, 14, 20)
+        outline_surf = pygame.Surface((58, 106), pygame.SRCALPHA)
+        mask = pygame.mask.from_surface(surf)
+        mask_surf = mask.to_surface(setcolor=outline_color, unsetcolor=(0, 0, 0, 0))
+        
+        outline_surf.blit(mask_surf, (0, 1))
+        outline_surf.blit(mask_surf, (2, 1))
+        outline_surf.blit(mask_surf, (1, 0))
+        outline_surf.blit(mask_surf, (1, 2))
+        
+        outline_surf.blit(surf, (1, 1))
+        return outline_surf
+
+    def draw_detailed_sprite(self, screen, x, y, theme, scale, direction=1, is_swinging=False, active_tool="PICKAXE", stance="STONE", flash_red=False):
+        key = (
+            theme.get("hair", (0,0,0)),
+            theme.get("shirt", (0,0,0)),
+            theme.get("pants", (0,0,0)),
+            theme.get("skin", (0,0,0)),
+            theme.get("eyes", (0,0,0)),
+            theme.get("has_ponytail", False),
+            theme.get("has_braids", False),
+            theme.get("has_cape", False),
+            theme.get("has_goatee", False),
+            theme.get("has_blindfold", False),
+            theme.get("has_straw_hat", False),
+            theme.get("has_fedora", False),
+            theme.get("has_green_cap", False),
+            theme.get("is_bald", False),
+            theme.get("has_scar", False),
+            is_swinging,
+            active_tool,
+            stance,
+            direction,
+            flash_red
+        )
+        
+        if key not in self.sprite_cache:
+            self.sprite_cache[key] = self.make_detailed_sprite(theme, is_swinging, active_tool, stance, direction, flash_red)
+            
+        sprite_surf = self.sprite_cache[key]
+        
+        w = int(sprite_surf.get_width() * (scale / 4.0))
+        h = int(sprite_surf.get_height() * (scale / 4.0))
+        w = max(1, w)
+        h = max(1, h)
+        
+        scaled_surf = pygame.transform.scale(sprite_surf, (w, h))
+        
+        # Center outline-padded sprite relative to original 14x26 box coordinates
+        offset_x = int(-1 * (scale / 4.0))
+        offset_y = int(-1 * (scale / 4.0))
+        screen.blit(scaled_surf, (x + offset_x, y + offset_y))
+
+    def draw_character_preview(self, screen, x, y, theme, scale):
+        # Preview utilizes the exact same 4x outline sprite drawer scaled appropriately
+        self.draw_detailed_sprite(screen, x, y, theme, scale * 4.0, direction=1)
+
+    # --- MAIN SCREEN / MENU DRAW ---
+    def draw_main_menu(self, screen):
+        # Draw sky background with sun and parallax clouds
+        screen.fill((140, 190, 255))
+        
+        # Sun
+        pygame.draw.circle(screen, (255, 255, 200), (200, 80), 38)
+        pygame.draw.circle(screen, (255, 220, 100), (200, 80), 30)
+        
+        # Floating clouds
+        for cloud in self.engine.world.clouds:
+            cx = int(cloud["x"])
+            cy = int(cloud["y"])
+            cw = int(cloud["w"])
+            ch = int(cloud["h"])
+            pygame.draw.ellipse(screen, (245, 248, 255), (cx, cy, cw, ch))
+            pygame.draw.ellipse(screen, (255, 255, 255), (cx + 5, cy + 4, int(cw * 0.8), int(ch * 0.8)))
+            
+        # 3D Extruded Blocky Text Logo "VARIUS"
+        title_text = "VARIUS"
+        for i in range(12, 0, -1):
+            offset_col = (max(0, 45 - i*2), max(0, 40 - i*2), max(0, 20 - i*2)) if i > 1 else (75, 60, 20)
+            font_3d = pygame.font.SysFont("Impact", 100, bold=True)
+            t_surf = font_3d.render(title_text, True, offset_col)
+            screen.blit(t_surf, (512 - t_surf.get_width()//2 + i*2, 120 - i*2))
+            
+        t_surf_front = font_3d.render(title_text, True, (255, 215, 0))
+        screen.blit(t_surf_front, (512 - t_surf_front.get_width()//2, 120))
+        
+        # Subtitle
+        sub_t = pygame.font.SysFont("Courier", 15, bold=True).render("A Swarm & Procedural Cave Adventure", True, (60, 75, 90))
+        screen.blit(sub_t, (512 - sub_t.get_width()//2, 220))
+        
+        # Version Badge
+        v_surf = pygame.font.SysFont("Courier", 12, bold=True).render("v_beta0.3", True, (255, 255, 255))
+        pygame.draw.rect(screen, (150, 40, 80), (512 - v_surf.get_width()//2 - 8, 245, v_surf.get_width() + 16, 20), 0, 4)
+        screen.blit(v_surf, (512 - v_surf.get_width()//2, 248))
+        
+        # Render Buttons
+        self.main_menu_buttons = []
+        buttons_info = [
+            ("START NEW GAME", "START", 320),
+            ("LOAD SAVE PROFILE", "LOAD_SAVE", 395),
+            ("GAME SETTINGS", "SETTINGS", 470),
+            ("QUIT GAME", "EXIT", 545)
+        ]
+        
+        mx, my = pygame.mouse.get_pos()
+        for title, action, y in buttons_info:
+            btn_rect = pygame.Rect(384, y, 256, 48)
+            hovered = btn_rect.collidepoint((mx, my))
+            
+            bg_col = (40, 55, 75) if hovered else (25, 30, 42)
+            bd_col = (255, 215, 0) if hovered else (70, 80, 100)
+            
+            pygame.draw.rect(screen, bg_col, btn_rect, 0, 8)
+            pygame.draw.rect(screen, bd_col, btn_rect, 2, 8)
+            
+            btn_text = self.font_hud.render(title, True, (255, 255, 255))
+            screen.blit(btn_text, (512 - btn_text.get_width()//2, y + 16))
+            
+            self.main_menu_buttons.append({"rect": btn_rect, "action": action})
+
+    def handle_main_menu_click(self, mouse_pos):
+        for btn in self.main_menu_buttons:
+            if btn["rect"].collidepoint(mouse_pos):
+                act = btn["action"]
+                if act == "START":
+                    self.engine.state = "CUSTOMIZER"
+                elif act == "LOAD_SAVE":
+                    self.engine.settings_prev_state = "MAIN_MENU"
+                    self.engine.state = "SETTINGS"
+                elif act == "SETTINGS":
+                    self.engine.settings_prev_state = "MAIN_MENU"
+                    self.engine.state = "SETTINGS"
+                elif act == "EXIT":
+                    self.engine.running = False
+                break
+
+    # --- CHARACTER SELECT OVERLAY (GRID SYSTEM) ---
     def draw_customizer(self, screen):
         screen.fill((15, 15, 22))
         
         t_surf = self.font_large.render("SELECT YOUR SURVIVOR HERO", True, (255, 255, 255))
         screen.blit(t_surf, (512 - t_surf.get_width()//2, 40))
         
-        sub_surf = self.font_main.render("Select a pop-culture character. Each features unique starting weapons and passives.", True, (150, 180, 200))
+        sub_surf = self.font_main.render("Navigate categories. Each hero offers unique starting gear and abilities.", True, (150, 180, 200))
         screen.blit(sub_surf, (512 - sub_surf.get_width()//2, 85))
 
         self.customizer_buttons = []
         
-        # 1. Left Panel: Scrollable list container
-        list_box = pygame.Rect(64, 150, 320, 500)
+        # 1. Scrollable Grid viewport coordinates
+        list_box = pygame.Rect(64, 150, 332, 500)
         pygame.draw.rect(screen, (22, 28, 38), list_box, 0, 8)
         pygame.draw.rect(screen, (60, 80, 110), list_box, 2, 8)
 
-        # Scroll Up Button
-        up_rect = pygame.Rect(64, 114, 320, 30)
+        # Scroll Up/Down Button definitions
+        up_rect = pygame.Rect(64, 114, 332, 30)
         pygame.draw.rect(screen, (32, 40, 55), up_rect, 0, 4)
         pygame.draw.rect(screen, (80, 100, 130), up_rect, 1, 4)
         up_t = self.font_hud.render("▲ SCROLL UP", True, (255, 255, 255))
-        screen.blit(up_t, (224 - up_t.get_width()//2, 122))
+        screen.blit(up_t, (230 - up_t.get_width()//2, 122))
         self.customizer_buttons.append({"rect": up_rect, "action": "SCROLL_UP", "index": None})
 
-        # Scroll Down Button
-        down_rect = pygame.Rect(64, 656, 320, 30)
+        down_rect = pygame.Rect(64, 656, 332, 30)
         pygame.draw.rect(screen, (32, 40, 55), down_rect, 0, 4)
         pygame.draw.rect(screen, (80, 100, 130), down_rect, 1, 4)
         down_t = self.font_hud.render("▼ SCROLL DOWN", True, (255, 255, 255))
-        screen.blit(down_t, (224 - down_t.get_width()//2, 664))
+        screen.blit(down_t, (230 - down_t.get_width()//2, 664))
         self.customizer_buttons.append({"rect": down_rect, "action": "SCROLL_DOWN", "index": None})
 
-        # Draw Names Slots
-        visible_slots = 10
-        row_h = 46
-        for i in range(visible_slots):
-            idx = self.char_scroll + i
-            if idx >= len(CHARACTERS_DB):
-                break
+        # Predefined list of category ordering
+        categories = [
+            "Pop Music & Reality",
+            "Marvel Universe",
+            "DC Universe",
+            "Star Wars",
+            "Anime & Manga",
+            "Vampires & Twilight",
+            "Gilmore Girls",
+            "SpongeBob SquarePants",
+            "Stranger Things & Wednesday",
+            "Gaming Legends",
+            "Cinematic & TV Worlds"
+        ]
+        
+        grouped = {cat: [] for cat in categories}
+        grouped["Other"] = []
+        for idx, char in enumerate(CHARACTERS_DB):
+            grp = char.get("group", "Other")
+            if grp in grouped:
+                grouped[grp].append((idx, char))
+            else:
+                grouped["Other"].append((idx, char))
                 
-            char = CHARACTERS_DB[idx]
-            slot_y = 160 + i * row_h
-            slot_rect = pygame.Rect(74, slot_y, 300, 40)
+        # Calculate viewport constraints
+        draw_y = 160 - self.char_grid_scroll_y
+        total_height = 0
+        
+        # Viewport clip rendering
+        screen.set_clip(pygame.Rect(66, 152, 328, 496))
+        
+        for cat in categories:
+            if not grouped[cat]:
+                continue
+                
+            # Render category header
+            cat_lbl = self.font_hud.render(f"■ {cat.upper()}", True, (255, 215, 0))
+            screen.blit(cat_lbl, (74, draw_y))
+            draw_y += 24
+            total_height += 24
             
-            selected = (self.engine.selected_character_idx == idx)
-            bg_col = (50, 75, 110) if selected else (30, 38, 48)
-            bd_col = (0, 220, 255) if selected else (60, 70, 85)
+            # Grid columns count = 4
+            for c_idx, (idx, char) in enumerate(grouped[cat]):
+                col = c_idx % 4
+                row = c_idx // 4
+                btn_x = 74 + col * 76
+                btn_y = draw_y + row * 76
+                
+                cell_rect = pygame.Rect(btn_x, btn_y, 68, 68)
+                selected = (self.engine.selected_character_idx == idx)
+                bg_col = (45, 65, 95) if selected else (25, 30, 42)
+                bd_col = (0, 220, 255) if selected else (55, 65, 80)
+                bd_w = 3 if selected else 1
+                
+                pygame.draw.rect(screen, bg_col, cell_rect, 0, 6)
+                pygame.draw.rect(screen, bd_col, cell_rect, bd_w, 6)
+                
+                # Render character 4x sprite preview scaled down inside cell
+                self.draw_detailed_sprite(screen, btn_x + 9, btn_y + 3, char["theme"], scale=4.0, direction=1)
+                
+                # Register hit zone
+                self.customizer_buttons.append({"rect": cell_rect, "action": "SELECT_INDEX", "index": idx})
+                
+            rows_count = (len(grouped[cat]) - 1) // 4 + 1
+            draw_y += rows_count * 76 + 12
+            total_height += rows_count * 76 + 12
             
-            pygame.draw.rect(screen, bg_col, slot_rect, 0, 6)
-            pygame.draw.rect(screen, bd_col, slot_rect, 1, 6)
-            
-            # Character list label
-            n_surf = self.font_hud.render(char["name"], True, (255, 255, 255))
-            screen.blit(n_surf, (90, slot_y + 6))
-            
-            o_font = pygame.font.SysFont("Courier", 9, italic=True)
-            o_surf = o_font.render(char["origin"], True, (180, 200, 220))
-            screen.blit(o_surf, (90, slot_y + 22))
-            
-            self.customizer_buttons.append({"rect": slot_rect, "action": "SELECT_INDEX", "index": idx})
+        screen.set_clip(None)
+        
+        # Scroll clamp variables
+        self.max_scroll_y = max(0, total_height - 470)
 
-        # 2. Right Panel: Profile View
+        # 2. Right Panel: Detailed Profile Card
         prof_box = pygame.Rect(416, 114, 544, 572)
         pygame.draw.rect(screen, (32, 38, 48), prof_box, 0, 8)
         pygame.draw.rect(screen, (80, 100, 130), prof_box, 3, 8)
 
-        # Retrieve active character profile details
         sel_char = CHARACTERS_DB[self.engine.selected_character_idx]
         
-        # Render profile text
         name_surf = self.font_large.render(sel_char["name"], True, (255, 220, 80))
         screen.blit(name_surf, (440, 136))
         
         orig_surf = pygame.font.SysFont("Courier", 14, italic=True).render(f"Origin: {sel_char['origin']}", True, (200, 220, 255))
         screen.blit(orig_surf, (440, 172))
 
-        # Avatar Preview Box
+        # 4x Detailed Profile Preview Box
         avatar_box = pygame.Rect(440, 200, 96, 110)
         pygame.draw.rect(screen, (22, 28, 38), avatar_box, 0, 6)
         pygame.draw.rect(screen, (60, 80, 110), avatar_box, 2, 6)
-        self.draw_character_preview(screen, 452, 212, sel_char["theme"], scale=3)
+        self.draw_character_preview(screen, 460, 202, sel_char["theme"], scale=3.6)
 
         # Stats meters
         stats_y = 200
@@ -455,7 +836,6 @@ class UIManager:
             lbl = self.font_hud.render(f"{label}:", True, (200, 200, 200))
             screen.blit(lbl, (554, sy))
             
-            # Progress bar
             bar_pct = val / max_val
             pygame.draw.rect(screen, (40, 45, 55), (664, sy + 4, 180, 10))
             pygame.draw.rect(screen, color, (664, sy + 4, int(180 * bar_pct), 10))
@@ -463,14 +843,11 @@ class UIManager:
             val_txt = self.font_hud.render(str(val), True, (255, 255, 255))
             screen.blit(val_txt, (856, sy))
 
-        # Divider line
         pygame.draw.line(screen, (50, 65, 85), (440, 325), (936, 325), 2)
 
-        # Weapon slot details
         w_title = self.font_sub.render(f"Weapon: {sel_char['starting_weapon']}", True, (255, 255, 255))
         screen.blit(w_title, (440, 340))
 
-        # Ability slot details
         ab_title = self.font_sub.render(f"Ability: {sel_char['unique_ability']['name']}", True, (0, 220, 255))
         screen.blit(ab_title, (440, 375))
         
@@ -479,7 +856,6 @@ class UIManager:
             l_surf = self.font_main.render(l, True, (200, 210, 220))
             screen.blit(l_surf, (440, 400 + idx * 18))
 
-        # Crafting bonus details
         cr_y = 400 + len(ab_lines) * 18 + 15
         cr_title = self.font_sub.render("Colony Crafting Bonus:", True, (100, 255, 130))
         screen.blit(cr_title, (440, cr_y))
@@ -489,7 +865,7 @@ class UIManager:
             l_surf = self.font_main.render(l, True, (200, 210, 220))
             screen.blit(l_surf, (440, cr_y + 25 + idx * 18))
 
-        # Play Select Button at bottom
+        # Select Button
         start_btn = pygame.Rect(540, 610, 300, 48)
         pygame.draw.rect(screen, (30, 80, 50), start_btn, 0, 8)
         pygame.draw.rect(screen, (100, 220, 130), start_btn, 3, 8)
@@ -497,69 +873,6 @@ class UIManager:
         btn_txt = self.font_hud.render("SELECT SURVIVOR [ENTER]", True, (255, 255, 255))
         screen.blit(btn_txt, (690 - btn_txt.get_width()//2, 626))
         self.customizer_buttons.append({"rect": start_btn, "action": "START", "index": None})
-
-    def draw_character_preview(self, screen, x, y, theme, scale):
-        c_pants = theme["pants"]
-        c_shirt = theme["shirt"]
-        c_skin = theme["skin"]
-        c_eyes = theme["eyes"]
-        c_hair = theme["hair"]
-
-        # Scaled drawing dimensions
-        # Pants
-        pygame.draw.rect(screen, c_pants, (x + 2*scale, y + 16*scale, 10*scale, 8*scale))
-        pygame.draw.rect(screen, (30, 30, 30), (x + 1*scale, y + 24*scale, 4*scale, 2*scale))
-        pygame.draw.rect(screen, (30, 30, 30), (x + 9*scale, y + 24*scale, 4*scale, 2*scale))
-        
-        # Cape check
-        if theme.get("has_cape"):
-            pygame.draw.rect(screen, theme.get("cape_color", (200, 30, 30)), (x - 2*scale, y + 8*scale, 4*scale, 16*scale))
-            pygame.draw.rect(screen, theme.get("cape_color", (200, 30, 30)), (x + 12*scale, y + 8*scale, 4*scale, 16*scale))
-            
-        # Torso
-        pygame.draw.rect(screen, c_shirt, (x + 1*scale, y + 8*scale, 12*scale, 8*scale))
-        
-        # Head
-        pygame.draw.rect(screen, c_skin, (x + 3*scale, y + 1*scale, 8*scale, 7*scale))
-        
-        # Goatee check
-        if theme.get("has_goatee"):
-            pygame.draw.rect(screen, (60, 45, 30), (x + 4*scale, y + 6*scale, 6*scale, 2*scale))
-            
-        # Eyes
-        if theme.get("has_blindfold"):
-            pygame.draw.rect(screen, (10, 10, 10), (x + 3*scale, y + 3*scale, 8*scale, 2*scale))
-        else:
-            pygame.draw.rect(screen, c_eyes, (x + 4*scale, y + 3*scale, 2*scale, 2*scale))
-            pygame.draw.rect(screen, c_eyes, (x + 7*scale, y + 3*scale, 2*scale, 2*scale))
-            
-        # Hair (unless bald)
-        if not theme.get("is_bald"):
-            pygame.draw.rect(screen, c_hair, (x + 2*scale, y, 10*scale, 2*scale))
-            pygame.draw.rect(screen, c_hair, (x + 10*scale, y + 1*scale, 2*scale, 4*scale))
-            if theme.get("has_ponytail"):
-                pygame.draw.rect(screen, c_hair, (x + 11*scale, y + 2*scale, 3*scale, 8*scale))
-            if theme.get("has_braids"):
-                pygame.draw.rect(screen, c_hair, (x + 1*scale, y + 4*scale, 2*scale, 10*scale))
-                pygame.draw.rect(screen, c_hair, (x + 11*scale, y + 4*scale, 2*scale, 10*scale))
-                
-        # Hats overlay
-        if theme.get("has_straw_hat"):
-            pygame.draw.polygon(screen, (220, 200, 120), [
-                (x - 2*scale, y + 2*scale),
-                (x + 7*scale, y - 4*scale),
-                (x + 16*scale, y + 2*scale)
-            ])
-        elif theme.get("has_fedora"):
-            pygame.draw.rect(screen, (100, 70, 45), (x - scale, y + scale, 16*scale, 2*scale))
-            pygame.draw.rect(screen, (80, 50, 30), (x + 2*scale, y - 2*scale, 10*scale, 3*scale))
-        elif theme.get("has_green_cap"):
-            pygame.draw.polygon(screen, (50, 140, 50), [
-                (x + 2*scale, y + scale),
-                (x + 11*scale, y + scale),
-                (x + 6*scale, y - 3*scale)
-            ])
-            pygame.draw.rect(screen, (50, 140, 50), (x + scale, y + scale, 3*scale, 6*scale))
 
     def handle_customizer_click(self, mouse_pos):
         for btn in self.customizer_buttons:
@@ -572,10 +885,11 @@ class UIManager:
                 elif action == "SELECT_INDEX":
                     self.engine.selected_character_idx = index
                 elif action == "SCROLL_UP":
-                    self.char_scroll = max(0, self.char_scroll - 1)
+                    self.char_grid_scroll_y = max(0, self.char_grid_scroll_y - 76)
                 elif action == "SCROLL_DOWN":
-                    self.char_scroll = min(len(CHARACTERS_DB) - 10, self.char_scroll + 1)
+                    self.char_grid_scroll_y = min(getattr(self, "max_scroll_y", 500), self.char_grid_scroll_y + 76)
                 break
+
 
     # --- HUD & PLAYING DRAW ---
     def draw_hud(self, screen):

@@ -15,7 +15,8 @@ class GameEngine:
         self.screen = screen
         self.clock = pygame.time.Clock()
         self.running = True
-        self.state = "CUSTOMIZER"  # States: CUSTOMIZER, PLAYING, LEVEL_UP, SETTINGS, TOWN, GAME_OVER
+        self.state = "MAIN_MENU"  # States: MAIN_MENU, CUSTOMIZER, PLAYING, LEVEL_UP, SETTINGS, TOWN, GAME_OVER
+        self.settings_prev_state = "MAIN_MENU"
         
         # Audio Synthesizer (Programmatic Sound FX and melody loop)
         self.sound_manager = SoundManager()
@@ -57,7 +58,8 @@ class GameEngine:
         self.level_choices = []
         
         # Subsystems
-        self.world = None
+        from world import World
+        self.world = World(width=160, height=80) 
         self.player = None
         self.mob_manager = None
         self.combat_manager = None
@@ -113,7 +115,9 @@ class GameEngine:
                 return
             
             # Delegate event handling to current state
-            if self.state == "CUSTOMIZER":
+            if self.state == "MAIN_MENU":
+                self.handle_main_menu_event(event)
+            elif self.state == "CUSTOMIZER":
                 self.handle_customizer_event(event)
             elif self.state == "PLAYING":
                 self.handle_playing_event(event)
@@ -128,26 +132,31 @@ class GameEngine:
                 self.handle_gameover_event(event)
 
     def update(self, dt):
-        if self.state == "PLAYING":
-            self.survival_time += dt
-            self.town_tick_timer += dt
-            if self.town_tick_timer >= 1.0:
-                self.town_tick_timer -= 1.0
-                self.tick_town_simulation()
+        if self.state in ["PLAYING", "MAIN_MENU"]:
+            if self.state == "PLAYING":
+                self.survival_time += dt
+                self.town_tick_timer += dt
+                if self.town_tick_timer >= 1.0:
+                    self.town_tick_timer -= 1.0
+                    self.tick_town_simulation()
+                
+                self.player.update(dt, self.world)
+                self.mob_manager.update(dt, self.world)
+                self.combat_manager.update(dt)
+                
+                if self.player.health <= 0:
+                    self.state = "GAME_OVER"
             
-            # Update clouds and entities
-            self.world.update_clouds(dt)
-            self.player.update(dt, self.world)
-            self.mob_manager.update(dt, self.world)
-            self.combat_manager.update(dt)
-            
-            if self.player.health <= 0:
-                self.state = "GAME_OVER"
+            # Update background clouds for main menu & playing sky layers
+            if self.world:
+                self.world.update_clouds(dt)
 
     def draw(self):
         self.screen.fill((10, 10, 15))
         
-        if self.state == "CUSTOMIZER":
+        if self.state == "MAIN_MENU":
+            self.ui_manager.draw_main_menu(self.screen)
+        elif self.state == "CUSTOMIZER":
             self.ui_manager.draw_customizer(self.screen)
         elif self.state in ["PLAYING", "LEVEL_UP", "SETTINGS", "TOWN"]:
             # Pass self.zoom to rendering methods
@@ -173,19 +182,30 @@ class GameEngine:
         pygame.display.flip()
 
     # --- Event Handlers for UI states ---
+    def handle_main_menu_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            mouse_pos = event.pos
+            self.ui_manager.handle_main_menu_click(mouse_pos)
+
     def handle_customizer_event(self, event):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RETURN:
                 self.sound_manager.play("click")
                 self.start_game()
         elif event.type == pygame.MOUSEBUTTONDOWN:
-            mouse_pos = event.pos
-            self.ui_manager.handle_customizer_click(mouse_pos)
+            if event.button == 4: # Scroll Up
+                self.ui_manager.char_grid_scroll_y = max(0, self.ui_manager.char_grid_scroll_y - 40)
+            elif event.button == 5: # Scroll Down
+                self.ui_manager.char_grid_scroll_y = min(getattr(self.ui_manager, "max_scroll_y", 500), self.ui_manager.char_grid_scroll_y + 40)
+            else:
+                mouse_pos = event.pos
+                self.ui_manager.handle_customizer_click(mouse_pos)
 
     def handle_playing_event(self, event):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_o:
                 self.sound_manager.play("click")
+                self.settings_prev_state = self.state
                 self.state = "SETTINGS"
             elif event.key == pygame.K_t:
                 self.sound_manager.play("click")

@@ -169,55 +169,72 @@ class Player:
     def handle_event(self, event, world):
         zoom = self.engine.zoom
         
-        # Keybind for manual Tool Swing / Action use: F
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_f:
                 # Trigger action based on active toolbar slot
                 active_tool = self.toolbar[self.active_slot]
                 
-                # Get mouse cursor in world coordinates (dividing screen coordinate by zoom)
-                mx, my = pygame.mouse.get_pos()
-                world_x = (mx + self.camera_x) / zoom
-                world_y = (my + self.camera_y) / zoom
+                # Target tile based on movement keys pressed at this moment
+                keys = pygame.key.get_pressed()
+                dx, dy = 0, 0
+                if keys[pygame.K_a] or keys[pygame.K_LEFT]:
+                    dx = -1
+                elif keys[pygame.K_d] or keys[pygame.K_RIGHT]:
+                    dx = 1
                 
-                tx = int(world_x / world.tile_size)
-                ty = int(world_y / world.tile_size)
-                
+                if keys[pygame.K_w] or keys[pygame.K_UP]:
+                    dy = -1
+                elif keys[pygame.K_s] or keys[pygame.K_DOWN]:
+                    dy = 1
+                    
+                # If stationary, default target direction to player's facing direction
+                if dx == 0 and dy == 0:
+                    dx = self.direction
+                    
                 player_tx = int((self.x + self.width/2) / world.tile_size)
                 player_ty = int((self.y + self.height/2) / world.tile_size)
-                dist = math.sqrt((tx - player_tx)**2 + (ty - player_ty)**2)
+                
+                # Determine absolute target block coordinates
+                tx = player_tx + dx
+                if dy == -1:
+                    ty = int(self.y / world.tile_size) - 1 # above head
+                elif dy == 1:
+                    ty = int((self.y + self.height) / world.tile_size) # below feet
+                else:
+                    ty = int((self.y + self.height/2) / world.tile_size) # torso level
                 
                 if active_tool == "PICKAXE":
-                    if dist <= 5:
-                        tile_type = world.get_tile(tx, ty)
-                        if tile_type != world.AIR:
-                            self.is_mining = True
-                            self.mine_target = (tx, ty)
-                            self.mine_timer = 0.0
-                            self.is_swinging = True
-                            self.swing_timer = 0.2
-                            self.engine.sound_manager.play("mine")
+                    tile_type = world.get_tile(tx, ty)
+                    if tile_type != world.AIR:
+                        self.is_mining = True
+                        self.mine_target = (tx, ty)
+                        self.mine_timer = 0.0
+                        self.is_swinging = True
+                        self.swing_timer = 0.2
+                        self.engine.sound_manager.play("mine")
                             
                 elif active_tool == "KATANA":
                     # Swing sword counter attack
                     self.is_swinging = True
                     self.swing_timer = 0.25
                     self.engine.sound_manager.play("swing")
+                    # Update facing direction dynamically based on action target
+                    if dx != 0:
+                        self.direction = dx
                     # Register manual sword attack hits in front
                     self.engine.combat_manager.trigger_manual_swing()
                     
                 elif active_tool == "BLOCK":
-                    if dist <= 5:
-                        tile_type = world.get_tile(tx, ty)
-                        if tile_type == world.AIR and self.engine.iron >= 2:
-                            # Verify not standing in it
-                            placed_rect = pygame.Rect(tx*16, ty*16, 16, 16)
-                            if not self.get_rect().colliderect(placed_rect):
-                                world.set_tile(tx, ty, world.DIRT)
-                                self.engine.iron -= 2
-                                self.is_swinging = True
-                                self.swing_timer = 0.15
-                                self.engine.sound_manager.play("block")
+                    tile_type = world.get_tile(tx, ty)
+                    if tile_type == world.AIR and self.engine.iron >= 2:
+                        # Verify not standing in it
+                        placed_rect = pygame.Rect(tx*16, ty*16, 16, 16)
+                        if not self.get_rect().colliderect(placed_rect):
+                            world.set_tile(tx, ty, world.DIRT)
+                            self.engine.iron -= 2
+                            self.is_swinging = True
+                            self.swing_timer = 0.15
+                            self.engine.sound_manager.play("block")
                                 
                 elif active_tool == "WATER":
                     # Toggle Water stance active ability
@@ -282,78 +299,16 @@ class Player:
         w = int(self.width * zoom)
         h = int(self.height * zoom)
         
-        # Flash red if damaged recently
-        c_skin = (255, 100, 100) if self.flash_timer > 0 else self.colors["skin"]
-        c_shirt = (255, 100, 100) if self.flash_timer > 0 else self.colors["shirt"]
-        c_pants = (200, 50, 50) if self.flash_timer > 0 else self.colors["pants"]
-        c_hair = (255, 100, 100) if self.flash_timer > 0 else self.colors["hair"]
-        c_eyes = (255, 0, 0) if self.flash_timer > 0 else self.colors["eyes"]
+        active_tool = self.toolbar[self.active_slot]
         
-        # 1. Legs/Pants (lower half)
-        pygame.draw.rect(screen, c_pants, (draw_x + int(2*zoom), draw_y + int(16*zoom), int(10*zoom), int(8*zoom)))
+        # Call the new 4x detailed sprite drawer from the engine's ui_manager
+        self.engine.ui_manager.draw_detailed_sprite(
+            screen, draw_x, draw_y, self.colors, zoom * 4.0, 
+            direction=self.direction, is_swinging=self.is_swinging, 
+            active_tool=active_tool, stance=self.stance, 
+            flash_red=(self.flash_timer > 0)
+        )
         
-        # Shoes
-        pygame.draw.rect(screen, (30, 30, 30), (draw_x + int((1 if self.direction == -1 else 2)*zoom), draw_y + int(24*zoom), int(4*zoom), int(2*zoom)))
-        pygame.draw.rect(screen, (30, 30, 30), (draw_x + int((9 if self.direction == -1 else 8)*zoom), draw_y + int(24*zoom), int(4*zoom), int(2*zoom)))
-        
-        # Cape check
-        if self.colors.get("has_cape"):
-            cape_col = self.colors.get("cape_color", (200, 30, 30))
-            if self.direction == 1:
-                # Behind back on the left
-                pygame.draw.rect(screen, cape_col, (draw_x - int(2*zoom), draw_y + int(8*zoom), int(4*zoom), int(16*zoom)))
-            else:
-                # Behind back on the right
-                pygame.draw.rect(screen, cape_col, (draw_x + w, draw_y + int(8*zoom), int(4*zoom), int(16*zoom)))
-
-        # 2. Torso/Shirt
-        pygame.draw.rect(screen, c_shirt, (draw_x + int(1*zoom), draw_y + int(8*zoom), int(12*zoom), int(8*zoom)))
-        
-        # 3. Head
-        pygame.draw.rect(screen, c_skin, (draw_x + int(3*zoom), draw_y + int(1*zoom), int(8*zoom), int(7*zoom)))
-        
-        # Goatee check
-        if self.colors.get("has_goatee"):
-            pygame.draw.rect(screen, (60, 45, 30), (draw_x + int(4*zoom), draw_y + int(6*zoom), int(6*zoom), int(2*zoom)))
-            
-        # 4. Eyes (based on direction)
-        eye_offset = int((4 if self.direction == 1 else 2) * zoom)
-        if self.colors.get("has_blindfold"):
-            pygame.draw.rect(screen, (10, 10, 10), (draw_x + int(3*zoom), draw_y + int(3*zoom), int(8*zoom), int(2*zoom)))
-        else:
-            pygame.draw.rect(screen, c_eyes, (draw_x + eye_offset, draw_y + int(3*zoom), int(2*zoom), int(2*zoom)))
-            pygame.draw.rect(screen, c_eyes, (draw_x + eye_offset + int(3*zoom), draw_y + int(3*zoom), int(2*zoom), int(2*zoom)))
-        
-        # 5. Hair
-        if not self.colors.get("is_bald"):
-            pygame.draw.rect(screen, c_hair, (draw_x + int(2*zoom), draw_y, int(10*zoom), int(2*zoom)))
-            hair_s_offset = int((2 if self.direction == -1 else 10) * zoom)
-            pygame.draw.rect(screen, c_hair, (draw_x + hair_s_offset, draw_y + int(1*zoom), int(2*zoom), int(4*zoom)))
-            if self.colors.get("has_ponytail"):
-                p_offset = int((11 if self.direction == 1 else -1) * zoom)
-                pygame.draw.rect(screen, c_hair, (draw_x + p_offset, draw_y + int(2*zoom), int(3*zoom), int(8*zoom)))
-            if self.colors.get("has_braids"):
-                pygame.draw.rect(screen, c_hair, (draw_x + int(1*zoom), draw_y + int(4*zoom), int(2*zoom), int(10*zoom)))
-                pygame.draw.rect(screen, c_hair, (draw_x + int(11*zoom), draw_y + int(4*zoom), int(2*zoom), int(10*zoom)))
-                
-        # Hats overlay
-        if self.colors.get("has_straw_hat"):
-            pygame.draw.polygon(screen, (220, 200, 120), [
-                (draw_x - int(2*zoom), draw_y + int(2*zoom)),
-                (draw_x + int(7*zoom), draw_y - int(4*zoom)),
-                (draw_x + int(16*zoom), draw_y + int(2*zoom))
-            ])
-        elif self.colors.get("has_fedora"):
-            pygame.draw.rect(screen, (100, 70, 45), (draw_x - int(zoom), draw_y + int(zoom), int(16*zoom), int(2*zoom)))
-            pygame.draw.rect(screen, (80, 50, 30), (draw_x + int(2*zoom), draw_y - int(2*zoom), int(10*zoom), int(3*zoom)))
-        elif self.colors.get("has_green_cap"):
-            pygame.draw.polygon(screen, (50, 140, 50), [
-                (draw_x + int(2*zoom), draw_y + int(zoom)),
-                (draw_x + int(11*zoom), draw_y + int(zoom)),
-                (draw_x + int(6*zoom), draw_y - int(3*zoom))
-            ])
-            pygame.draw.rect(screen, (50, 140, 50), (draw_x + int(zoom), draw_y + int(zoom), int(3*zoom), int(6*zoom)))
-
         # 6. Draw Weapon (Katana or Lightsaber)
         sword_color = self.colors.get("saber_color", (200, 200, 200)) if self.colors.get("has_lightsaber") else (200, 200, 200)
         hilt_color = (139, 69, 19)

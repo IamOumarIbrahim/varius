@@ -1763,4 +1763,81 @@ CHARACTERS_DB = [
   }
 ]
 
+# Universe / Show Groups definition
+NAME_TO_GROUP = {
+    # Pop Music & Reality
+    "Ariana Grande": "Pop Music & Reality", "Sabrina Carpenter": "Pop Music & Reality",
+    "Taylor Swift": "Pop Music & Reality", "Billie Eilish": "Pop Music & Reality",
+    "Travis Scott": "Pop Music & Reality", "The Weeknd": "Pop Music & Reality",
+    "Lady Gaga": "Pop Music & Reality", "Chappell Roan": "Pop Music & Reality",
+    "Olivia Rodrigo": "Pop Music & Reality", "Kendrick Lamar": "Pop Music & Reality",
+    "Kim Kardashian": "Pop Music & Reality", "Dua Lipa": "Pop Music & Reality",
+    "Drake": "Pop Music & Reality", "Lana Del Rey": "Pop Music & Reality",
+    "Rihanna": "Pop Music & Reality", "Charli XCX": "Pop Music & Reality",
+    "Eminem": "Pop Music & Reality", "Kris Jenner": "Pop Music & Reality",
+    "Travis Kelce": "Pop Music & Reality",
+    
+    # Marvel Universe
+    "Spider-Man": "Marvel Universe", "Deadpool": "Marvel Universe",
+    "Wolverine": "Marvel Universe", "Tony Stark": "Marvel Universe",
+    "Wanda Maximoff": "Marvel Universe", "Thanos": "Marvel Universe",
+    "Miles Morales": "Marvel Universe",
+    
+    # DC Universe
+    "Batman": "DC Universe", "Harley Quinn": "DC Universe", "Joker": "DC Universe",
+    
+    # Star Wars
+    "Luke Skywalker": "Star Wars", "Darth Vader": "Star Wars", "The Mandalorian": "Star Wars",
+    
+    # Anime & Manga
+    "Naruto Uzumaki": "Anime & Manga", "Gojo Satoru": "Anime & Manga",
+    "Luffy": "Anime & Manga", "Roronoa Zoro": "Anime & Manga",
+    "Sailor Moon": "Anime & Manga", "Goku": "Anime & Manga",
+    "Ryomen Sukuna": "Anime & Manga", "Saitama": "Anime & Manga",
+    
+    # Vampires & Twilight
+    "Damon Salvatore": "Vampires & Twilight", "Bella Swan": "Vampires & Twilight",
+    "Edward Cullen": "Vampires & Twilight", "Elena Gilbert": "Vampires & Twilight",
+    
+    # Gilmore Girls
+    "Rory Gilmore": "Gilmore Girls", "Lorelai Gilmore": "Gilmore Girls", "Paris Geller": "Gilmore Girls",
+    
+    # SpongeBob SquarePants
+    "SpongeBob SquarePants": "SpongeBob SquarePants", "Patrick Star": "SpongeBob SquarePants",
+    "Squidward Tentacles": "SpongeBob SquarePants",
+    
+    # Stranger Things & Wednesday
+    "Wednesday Addams": "Stranger Things & Wednesday", "Enid Sinclair": "Stranger Things & Wednesday",
+    "Steve Harrington": "Stranger Things & Wednesday", "Max Mayfield": "Stranger Things & Wednesday",
+    
+    # Gaming Legends
+    "Geralt of Rivia": "Gaming Legends", "Lara Croft": "Gaming Legends",
+    "Kratos": "Gaming Legends", "Sonic the Hedgehog": "Gaming Legends",
+    "Pikachu": "Gaming Legends", "Joel Miller": "Gaming Legends",
+    "Cloud Strife": "Gaming Legends", "Link": "Gaming Legends",
+    "Zagreus": "Gaming Legends", "Arthur Morgan": "Gaming Legends",
+    "Steve": "Gaming Legends", "Leon S. Kennedy": "Gaming Legends",
+    
+    # Cinematic & TV Worlds
+    "Walter White": "Cinematic & TV Worlds", "Michael Scott": "Cinematic & TV Worlds",
+    "Homelander": "Cinematic & TV Worlds", "Harry Potter": "Cinematic & TV Worlds",
+    "Katniss Everdeen": "Cinematic & TV Worlds", "Barbie": "Cinematic & TV Worlds",
+    "Barbie Ken": "Cinematic & TV Worlds", "Weird Barbie": "Cinematic & TV Worlds",
+    "Paul Atreides": "Cinematic & TV Worlds", "Percy Jackson": "Cinematic & TV Worlds",
+    "Maddy Perez": "Cinematic & TV Worlds", "Donkey": "Cinematic & TV Worlds",
+    "Gollum": "Cinematic & TV Worlds", "Carmy Berzatto": "Cinematic & TV Worlds",
+    "Bill Cipher": "Cinematic & TV Worlds", "Rhaenyra Targaryen": "Cinematic & TV Worlds",
+    "Elle Woods": "Cinematic & TV Worlds", "Moo Deng": "Cinematic & TV Worlds",
+    "Jon Snow": "Cinematic & TV Worlds", "Daenerys Targaryen": "Cinematic & TV Worlds",
+    "Elsa": "Cinematic & TV Worlds", "Indiana Jones": "Cinematic & TV Worlds",
+    "Jack Sparrow": "Cinematic & TV Worlds", "Neo": "Cinematic & TV Worlds",
+    "Ted Lasso": "Cinematic & TV Worlds", "Beth Harmon": "Cinematic & TV Worlds",
+    "Rick Sanchez": "Cinematic & TV Worlds", "Billie Butcher": "Cinematic & TV Worlds"
+}
+
+# Decorate characters with their groups
+for char in CHARACTERS_DB:
+    char["group"] = NAME_TO_GROUP.get(char["name"], "Other")
+
+
 
